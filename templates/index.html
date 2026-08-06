@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadence — AI Music Coach</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+
+        <!-- HEADER -->
+        <header class="header">
+            <h1 class="logo">🎹 Cadence</h1>
+            <p class="tagline">Your daily AI piano coach. No sheet music needed.</p>
+        </header>
+
+        <!-- SCREEN 1: RECORD -->
+        <main class="screen screen--record" id="screen-record">
+            <div class="card">
+                <div class="stat-banner">
+                    <span class="stat">🎯 Research-backed method</span>
+                    <span class="stat">⏱️ Daily feedback</span>
+                    <span class="stat">🎓 Oclef method</span>
+                </div>
+
+                <p class="prompt">
+                    Tell Cadence what you practiced today.<br>
+                    <span class="prompt-hint">What went well? What felt hard? What's stuck?</span>
+                </p>
+
+                <button class="btn-record" id="btn-record" aria-label="Start recording">
+                    <span class="btn-record__icon">🎙️</span>
+                    <span class="btn-record__text">Tap to Record</span>
+                </button>
+
+                <div class="recording-status" id="recording-status" hidden>
+                    <span class="recording-dot"></span>
+                    <span class="recording-time" id="recording-time">0:00</span>
+                    <span class="recording-hint">Speak naturally. Describe your practice.</span>
+                </div>
+
+                <button class="btn-stop" id="btn-stop" hidden>Stop & Send</button>
+
+                <div class="context-input" id="context-area" hidden>
+                    <label for="context">Anything else to add?</label>
+                    <textarea id="context" rows="2" placeholder="e.g., I'm working on the Chopin prelude, right hand only..."></textarea>
+                    <button class="btn-send" id="btn-send">Send to Coach</button>
+                </div>
+
+                <div class="loading" id="loading" hidden>
+                    <div class="spinner"></div>
+                    <p>Your coach is listening...</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- SCREEN 2: FEEDBACK -->
+        <main class="screen screen--feedback" id="screen-feedback" hidden>
+            <div class="card feedback-card">
+                <div class="feedback-header">
+                    <h2>🎯 Your Coach Says</h2>
+                </div>
+
+                <div class="transcript-box">
+                    <p class="transcript-label">You said:</p>
+                    <p class="transcript-text" id="transcript-display"></p>
+                </div>
+
+                <div class="coaching-box">
+                    <p class="coaching-label">Coach Cadence:</p>
+                    <div class="coaching-text" id="coaching-display"></div>
+                </div>
+
+                <div class="practice-plan" id="practice-plan">
+                    <h3>📋 Today's Focus</h3>
+                    <div id="plan-content"></div>
+                </div>
+
+                <button class="btn-again" id="btn-again">Record Another</button>
+            </div>
+        </main>
+
+        <!-- SCREEN 3: PROGRESS (MOCKED FOR DEMO) -->
+        <main class="screen screen--progress" id="screen-progress" hidden>
+            <div class="card">
+                <h2>📊 Your Journey</h2>
+                <div class="streak-banner">
+                    <span class="streak-flame">🔥</span>
+                    <span class="streak-count">22</span>
+                    <span class="streak-label">day streak</span>
+                </div>
+                <div class="progress-grid">
+                    <div class="progress-stat">
+                        <span class="progress-value">47</span>
+                        <span class="progress-label">sessions</span>
+                    </div>
+                    <div class="progress-stat">
+                        <span class="progress-value">3</span>
+                        <span class="progress-label">pieces mastered</span>
+                    </div>
+                    <div class="progress-stat">
+                        <span class="progress-value">12</span>
+                        <span class="progress-label">skills unlocked</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-back" id="btn-back-progress">Back to Record</button>
+        </main>
+
+        <!-- FOOTER NAV -->
+        <nav class="nav">
+            <button class="nav-btn nav-btn--active" data-screen="record">🎙️ Record</button>
+            <button class="nav-btn" data-screen="feedback" id="nav-feedback">💬 Feedback</button>
+            <button class="nav-btn" data-screen="progress">📊 Progress</button>
+        </nav>
+    </div>
+
+    <script src="/static/js/recorder.js"></script>
+</body>
+</html>
