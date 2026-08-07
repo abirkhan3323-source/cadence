@@ -241,10 +241,13 @@ class AIClient:
         self.provider: str = self._detect_provider()
 
     def _detect_provider(self) -> str:
+        providers = []
         if self.featherless_key:
-            return "featherless"
+            providers.append("featherless")
         if self.groq_key:
-            return "groq"
+            providers.append("groq")
+        if providers:
+            return "+".join(providers)
         return "mock"
 
     # ── Public API ──
@@ -255,11 +258,12 @@ class AIClient:
         cached = _check_demo_cache(transcription)
         if cached:
             return cached
-        if self.provider == "featherless":
+        # Try all available providers in order, falling through on failure
+        if self.featherless_key:
             result = self._call_featherless(transcription, context)
             if result:
                 return result
-        if self.provider == "groq":
+        if self.groq_key:
             result = self._call_groq(transcription, context)
             if result:
                 return result
