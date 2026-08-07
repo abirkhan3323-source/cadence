@@ -72,7 +72,7 @@ const scanText = document.getElementById("scan-text");
 function createRecognition() {
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        alert("Speech recognition not supported. Please use Chrome or Edge.");
+        promptText.innerHTML = '<span style="color: #e07070;">Speech recognition not supported. Use Chrome or Edge.</span>';
         return null;
     }
 
@@ -80,6 +80,29 @@ function createRecognition() {
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
+    rec.maxAlternatives = 1;
+
+    // Visual feedback: mic is hot
+    var statusHint = document.querySelector(".recording-hint");
+    var dot = document.querySelector(".recording-dot");
+
+    rec.onaudiostart = function () {
+        if (dot) dot.classList.add("recording-dot--hot");
+        if (statusHint) statusHint.textContent = "Microphone active — start speaking!";
+    };
+
+    rec.onsoundstart = function () {
+        if (dot) dot.classList.add("recording-dot--pulse");
+        if (statusHint) statusHint.textContent = "Hearing you... keep talking.";
+    };
+
+    rec.onspeechstart = function () {
+        if (statusHint) statusHint.textContent = "Capturing your words...";
+    };
+
+    rec.onspeechend = function () {
+        if (statusHint) statusHint.textContent = "Listening... tell me more.";
+    };
 
     rec.onresult = function (event) {
         var interim = "";
@@ -97,19 +120,55 @@ function createRecognition() {
         transcribedText += final;
 
         if (promptText) {
-            promptText.innerHTML =
-                '<span style="color: #e8b84b;">🎙️ ' + transcribedText + '</span>' +
-                '<span style="color: #666; font-style: italic;">' + interim + '</span>';
+            var display = '<span style="color: var(--accent);">' + transcribedText + '</span>';
+            if (interim) {
+                display += '<span style="color: #888; font-style: italic;">' + interim + '</span>';
+            }
+            if (transcribedText || interim) {
+                promptText.innerHTML = display;
+            }
         }
     };
 
     rec.onerror = function (event) {
-        if (event.error === "no-speech") return;
-        if (event.error === "aborted") return;
+        var msg = "";
+        switch (event.error) {
+            case "not-allowed":
+                msg = "Microphone access blocked. Click the lock/camera icon in your browser address bar and allow the mic.";
+                break;
+            case "no-speech":
+                msg = "No speech detected. Check if your mic is plugged in and not muted.";
+                break;
+            case "audio-capture":
+                msg = "No microphone found. Connect a mic and try again.";
+                break;
+            case "network":
+                msg = "Network error. Speech recognition needs internet.";
+                break;
+            case "aborted":
+                return; // Normal stop — no error
+            default:
+                msg = "Speech error: " + event.error + ". Try again or use text input.";
+        }
+        if (promptText) {
+            promptText.innerHTML = '<span style="color: #e07070;">' + msg + '</span>';
+        }
+        isRecording = false;
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+        recordingStatus.hidden = true;
+        btnStop.hidden = true;
+        btnRecord.hidden = false;
     };
 
     rec.onend = function () {
-        if (isRecording) rec.start();
+        if (dot) {
+            dot.classList.remove("recording-dot--hot", "recording-dot--pulse");
+        }
+        if (isRecording) {
+            // Auto-restart on unexpected end (but not on manual stop)
+            try { rec.start(); } catch (e) { /* restart failed, stop */ }
+        }
     };
 
     return rec;
@@ -139,11 +198,12 @@ if (btnSendDirect) {
     btnSendDirect.addEventListener("click", function () {
         transcribedText = typeDirect.value.trim();
         if (!transcribedText) {
-            alert("Please describe your practice first.");
+            promptText.innerHTML = '<span style="color: #e07070;">Please describe your practice first — type or speak above.</span>';
             return;
         }
         typeDirect.value = "";
         document.getElementById("context").value = "";
+        document.getElementById("type-input-block").hidden = true;
         sendToCoach();
     });
 }
@@ -160,12 +220,18 @@ function startRecording() {
     recognition = createRecognition();
     if (!recognition) return;
 
-    isRecording = true;
-    recognition.start();
+    try {
+        recognition.start();
+    } catch (e) {
+        promptText.innerHTML = '<span style="color: #e07070;">Mic access blocked. Allow microphone in browser settings and reload.</span>';
+        return;
+    }
 
+    isRecording = true;
     btnRecord.hidden = true;
     btnStop.hidden = false;
     recordingStatus.hidden = false;
+    document.getElementById("type-input-block").hidden = true;
     recordingSeconds = 0;
     recordingTime.textContent = "0:00";
     recordingTimer = setInterval(updateTimer, 1000);
