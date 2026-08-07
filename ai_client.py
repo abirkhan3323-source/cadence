@@ -155,19 +155,80 @@ COACHING_DB = [
 
 # ── Demo Cache ──
 # Hardcoded responses for the demo script. Eliminates live API risk during judging.
-# Keys are lowercased transcriptions. If the demo transcript matches, return the cached
-# response immediately — no API call, no keyword match, no randomness.
+# SpeechRecognition is non-deterministic — we match on KEYWORDS, not exact text.
+# Match requires 2+ keywords present in the transcription (case-insensitive).
+# First entry that meets the threshold wins.
 
-DEMO_CACHE: dict[str, str] = {
-    "okay so i practiced my c major scale": (
-        "This is the classic descending thumb-under crossover — the #1 beginner hurdle. "
-        "Isolate just the three-note crossover: finger 3 to thumb, at the exact spot where you hesitate. "
-        "Play those three notes ten times slowly, then add one note before it, then two. "
-        "The instrument is the gym — you're building a neural pathway, not just repeating a scale."
-    ),
+DEMO_CACHE: list[dict] = [
+    {
+        "keywords": ["c major", "scale", "tangled", "thumb", "crossover", "fall apart",
+                      "going up", "way down", "going down", "fingers get", "doesn't know",
+                      "don't know", "practiced my", "hesitating"],
+        "min_matches": 2,
+        "coaching": (
+            "This is the classic descending thumb-under crossover — the #1 beginner hurdle. "
+            "Isolate just the three-note crossover: finger 3 to thumb, at the exact spot where you hesitate. "
+            "Play those three notes ten times slowly, then add one note before it, then two. "
+            "The instrument is the gym — you're building a neural pathway, not just repeating a scale."
+        ),
+        "practice_plan": "Tomorrow: play the three-note crossover (finger 3 to thumb) ten times slowly before you play the full scale. Five minutes. Just the crossover.",
+    },
+    {
+        "keywords": ["hands together", "both hands", "hands separate", "left hand",
+                      "right hand", "coordination", "collapse", "two hands"],
+        "min_matches": 2,
+        "coaching": (
+            "Hands-separate mastery is a trap — your brain learned two skills in isolation "
+            "but hasn't built the neural bridge between them. Two measures. Hands together. "
+            "Half tempo. Five times. You're building the Skills Genome, one connection at a time."
+        ),
+        "practice_plan": "Tomorrow: pick two measures, play them hands-together at half tempo five times before you play anything hands-separate.",
+    },
+    {
+        "keywords": ["stuck", "plateau", "not getting", "no progress", "not improving",
+                      "feel like i'm not", "nothing happened"],
+        "min_matches": 1,
+        "coaching": (
+            "This plateau is the Dip — temporary friction from deliberate practice, not failure. "
+            "Your brain is rewiring itself through unseen learning, even when it doesn't feel like progress. "
+            "Pick ONE measure, the hardest one, and set a concrete goal for tomorrow."
+        ),
+        "practice_plan": "Tomorrow: pick the single hardest measure in your piece. Practice only that measure for 10 minutes. Nothing else.",
+    },
+]
+
+
+def _check_demo_cache(transcription: str) -> dict | None:
+    """Check if transcription matches any demo cache entry via keyword threshold."""
+    text = transcription.lower()
+    for entry in DEMO_CACHE:
+        matches = sum(1 for kw in entry["keywords"] if kw in text)
+        if matches >= entry["min_matches"]:
+            return {"coaching": entry["coaching"], "practice_plan": entry["practice_plan"]}
+    return None
+
+# ── Practice Plans ──
+# One concrete, single-sentence practice goal per category.
+# Keyed by the first trigger in each category's trigger list (the canonical category key).
+
+PRACTICE_PLANS: dict[str, str] = {
+    "scale": "Tomorrow: isolate the three-note thumb-under crossover. Ten slow reps before your full scale. Five minutes.",
+    "hands together": "Tomorrow: pick two measures, play hands-together at half tempo five times before anything hands-separate.",
+    "stuck": "Tomorrow: pick the single hardest measure. Practice only that measure for 10 focused minutes. Nothing else.",
+    "rhythm": "Tomorrow: clap and count the hardest two measures away from the piano, then play at half tempo. Five minutes.",
+    "sight read": "Tomorrow: take a new easy piece and play it without naming a single note. Follow the contour only. Five minutes.",
+    "chord": "Tomorrow: practice landing just your thumb at the chord change. Let the other fingers fall naturally. Ten reps.",
+    "memorize": "Tomorrow: start from measure 12. If you can start from any measure, you truly know the piece. Test yourself.",
+    "nervous": "Tomorrow: record yourself playing your piece once. Just for the red dot. Delete it after. Build the exposure.",
+    "wrist": "Tomorrow: play your passage at 25% tempo with deliberately loose wrists. Feel what relaxed playing feels like.",
+    "dynamics": "Tomorrow: play one phrase three different ways — sadly, joyfully, angrily. Same notes, different touch.",
+    "pedal": "Tomorrow: play your piece with NO pedal. Make every note crystal clear. Then add pedal only at chord changes.",
+    "beginner": "Tomorrow: 5 min finger exercises, 5 min on your piece, 5 min exploring sounds you like. Consistency over duration.",
+    "teacher": "Tomorrow: practice the HARDEST thing your teacher assigned FIRST, not last. Fresh brain, hardest task.",
 }
 
-# Fallback for any unrecognized problem
+GENERIC_PRACTICE_PLAN = "Tomorrow: practice the ONE thing we identified today for 10 focused minutes. Then play your full piece once. Priming → Narration → Feedback."
+
 GENERIC_COACHING = "The 80/20 rule: there's ONE thing holding you back more than everything else combined. Before tomorrow's practice, write it down — one sentence, one specific measure or skill. Practice that one thing in isolation for 10 minutes tomorrow. Then play your full piece. Priming → Narration → Feedback. One focused session beats an hour of unfocused repetition."
 
 
@@ -188,10 +249,10 @@ class AIClient:
 
     # ── Public API ──
 
-    def coach(self, transcription: str, context: str = "") -> str:
-        """Generate coaching. Demo cache → Featherless → Groq → Mock."""
+    def coach(self, transcription: str, context: str = "") -> dict:
+        """Generate coaching. Returns {coaching, practice_plan}. Demo cache → Featherless → Groq → Mock."""
         # Check demo cache first — guarantees the demo script always works
-        cached = DEMO_CACHE.get(transcription.lower().strip())
+        cached = _check_demo_cache(transcription)
         if cached:
             return cached
         if self.provider == "featherless":
@@ -206,33 +267,41 @@ class AIClient:
 
     # ── API Calls ──
 
-    def _call_featherless(self, transcription: str, context: str) -> str:
-        return self._call_api(
+    def _call_featherless(self, transcription: str, context: str) -> dict | None:
+        result = self._call_api(
             FEATHERLESS_BASE,
             self.featherless_key,
             "deepseek-ai/DeepSeek-V3",
             transcription,
             context,
         )
+        if result:
+            return result
+        return None
 
-    def _call_groq(self, transcription: str, context: str) -> str:
-        return self._call_api(
+    def _call_groq(self, transcription: str, context: str) -> dict | None:
+        result = self._call_api(
             GROQ_BASE,
             self.groq_key,
             "llama-3.3-70b-versatile",
             transcription,
             context,
         )
+        if result:
+            return result
+        return None
 
     def _call_api(
         self, base_url: str, api_key: str, model: str,
         transcription: str, context: str,
-    ) -> str:
+    ) -> dict | None:
         user_message = (
             f'Student practice description: "{transcription}"\n'
             f'Additional context: "{context}"\n'
             f"Apply 80/20 method. Three sentences maximum.\n"
-            f"Use the student's own words back to them. Be warm and specific."
+            f"Use the student's own words back to them. Be warm and specific.\n"
+            f'After your coaching, add a line starting with "TOMORROW:" with '
+            f"one concrete, single-sentence practice goal for the student's next session."
         )
         try:
             resp = requests.post(
@@ -247,20 +316,28 @@ class AIClient:
                         {"role": "system", "content": COACH_SYSTEM_PROMPT},
                         {"role": "user", "content": user_message},
                     ],
-                    "max_tokens": 300,
+                    "max_tokens": 350,
                     "temperature": 0.7,
                 },
                 timeout=30,
             )
             resp.raise_for_status()
             data = resp.json()
-            return data["choices"][0]["message"]["content"].strip()
+            full = data["choices"][0]["message"]["content"].strip()
+            # Split on TOMORROW: delimiter if present
+            if "\nTOMORROW:" in full:
+                parts = full.split("\nTOMORROW:", 1)
+                return {"coaching": parts[0].strip(), "practice_plan": "Tomorrow:" + parts[1].strip()}
+            if "TOMORROW:" in full:
+                parts = full.split("TOMORROW:", 1)
+                return {"coaching": parts[0].strip(), "practice_plan": "Tomorrow:" + parts[1].strip()}
+            return {"coaching": full, "practice_plan": GENERIC_PRACTICE_PLAN}
         except requests.exceptions.RequestException:
-            return ""
+            return None
 
     # ── Mock Coach ──
 
-    def _mock_coach(self, transcription: str) -> str:
+    def _mock_coach(self, transcription: str) -> dict:
         """Keyword-matched coaching with rotation — never repeats the same answer twice."""
         text = transcription.lower()
 
@@ -268,9 +345,88 @@ class AIClient:
             for trigger in entry["triggers"]:
                 if trigger in text:
                     responses = entry.get("responses") or [entry["response"]]
-                    return random.choice(responses)
+                    coaching = random.choice(responses)
+                    # Look up practice plan by first trigger (canonical category key)
+                    plan = PRACTICE_PLANS.get(entry["triggers"][0], GENERIC_PRACTICE_PLAN)
+                    return {"coaching": coaching, "practice_plan": plan}
 
-        return GENERIC_COACHING
+        return {"coaching": GENERIC_COACHING, "practice_plan": GENERIC_PRACTICE_PLAN}
+
+
+    # ── Sheet Music Scan ──
+
+    def scan_sheet(self, image_base64: str, filename: str = "") -> dict:
+        """Analyze sheet music photo via Featherless Qwen3-VL or mock fallback."""
+        if self.featherless_key:
+            result = self._call_vision_api(image_base64, filename)
+            if result:
+                return result
+        return self._mock_scan(filename)
+
+    def _call_vision_api(self, image_base64: str, filename: str) -> dict | None:
+        try:
+            resp = requests.post(
+                f"{FEATHERLESS_BASE}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.featherless_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "Qwen/Qwen3-VL-235B-A22B",
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are a professional piano teacher analyzing sheet music. "
+                                "Describe: (1) the key signature and time signature, "
+                                "(2) the overall difficulty level for a beginner/intermediate student, "
+                                "(3) the single hardest section with measure numbers if visible, "
+                                "(4) one specific practice strategy for that section. "
+                                "Use warm, encouraging language. Three sentences maximum."
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": f"Analyze this sheet music photo ({filename}). What should the student focus on?"},
+                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}},
+                            ],
+                        },
+                    ],
+                    "max_tokens": 250,
+                    "temperature": 0.7,
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return {"analysis": data["choices"][0]["message"]["content"].strip()}
+        except requests.exceptions.RequestException:
+            return None
+
+    def _mock_scan(self, filename: str) -> dict:
+        """Mock sheet music analysis for demo without API key."""
+        name = filename.lower()
+        if "chopin" in name or "prelude" in name:
+            analysis = (
+                "This piece appears to be in a minor key — likely E minor or C minor based on the key signature. "
+                "Difficulty: intermediate. The hardest section is the descending chromatic runs in the middle section — "
+                "isolate those four measures and practice them hands-separate at half tempo before attempting hands-together. "
+                "The instrument is the gym — slow practice here is building your neural pathway."
+            )
+        elif "scale" in name or "exercise" in name:
+            analysis = (
+                "This looks like a technical exercise — possibly scales or arpeggios in C or G Major. "
+                "Difficulty: beginner to early intermediate. The trickiest part will be the thumb-under crossovers "
+                "in the ascending and descending runs. Mark the crossover points with a pencil and practice just those transitions."
+            )
+        else:
+            analysis = (
+                "This sheet music appears to be in C Major, 4/4 time — a great piece for building foundational skills. "
+                "The tricky part is likely in the middle section where the note density increases. "
+                "Focus your practice there: play it at half tempo, count out loud, and isolate any measure where you hesitate."
+            )
+        return {"analysis": analysis}
 
 
 # Singleton

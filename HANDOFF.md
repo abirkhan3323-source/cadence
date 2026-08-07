@@ -786,7 +786,36 @@ curl -X POST http://localhost:5000/api/coach-text -H "Content-Type: application/
 
 ---
 
-## 10. IF YOU NEED ULTRA CODE OR MAX
+## 10. MANDATORY — USE ALL 290 SKILLS
+
+You have **290+ Claude Code skills** installed at `C:\Users\ABC\.claude\skills\`. They were installed yesterday specifically to win hackathons. You MUST use them throughout this build.
+
+### Skills to invoke for each phase:
+
+| Phase | Skills to Use |
+|-------|--------------|
+| **Planning** | `brainstorming` (HARD GATE before any code), `writing-plans`, `executing-plans` |
+| **Building** | `subagent-driven-development` (parallel building), `test-driven-development` (IRON LAW), `quick-mvp`, `fullstack-engineer` |
+| **QA/Review** | `/qa` (real browser testing), `systematic-debugging`, `requesting-code-review`, `verification-before-completion` |
+| **Design** | `frontend-design`, `/design-shotgun`, `/design-review`, `ship-page` |
+| **Ship** | `ship-check` (8-category pre-deploy), `finishing-a-development-branch` |
+| **Demo** | `startup-pitch` (investor-grade narrative), `judge-first-design` (scorecard optimization), `demo-rehearsal` (3x practice rule) |
+| **Research** | `deep-research` (TTD-DR 7-phase), `web-access` (CDP browser), `web-browsing` (HARD-GATE anti-snippet) |
+| **Process** | `hackathon-clock` (hard cutoffs), `using-superpowers` (1% rule — if 1% chance a skill applies, MUST invoke) |
+
+### The 1% Rule:
+If there is even a 1% chance a skill applies to what you're doing, you MUST invoke it. Check the skills list at session start. Do not rationalize skipping.
+
+### Key combos for this hackathon:
+- Before writing ANY code → `brainstorming` → present design → get approval
+- During build → `subagent-driven-development` (fresh subagent per task + review)
+- Before claiming anything works → `verification-before-completion` (run command, show evidence)
+- Before deploying → `ship-check` (SEO, payments, security, performance, 8 categories)
+- Before demo → `demo-rehearsal` (3 full run-throughs minimum)
+
+---
+
+## 11. IF YOU NEED ULTRA CODE OR MAX
 
 Say "ultracode" for parallel agent work (research, multi-file builds, review sweeps).
 Say "need max" or "think hard" for deep reasoning on prompts, architecture, or demo script.

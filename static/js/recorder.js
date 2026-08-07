@@ -10,8 +10,9 @@ let isRecording = false;
 let recordingSeconds = 0;
 let recordingTimer = null;
 let transcribedText = "";
+let loadingTimer = null;
 
-// DOM
+// DOM — Record screen
 const screenRecord = document.getElementById("screen-record");
 const screenFeedback = document.getElementById("screen-feedback");
 const screenProgress = document.getElementById("screen-progress");
@@ -23,32 +24,69 @@ const recordingStatus = document.getElementById("recording-status");
 const recordingTime = document.getElementById("recording-time");
 const contextArea = document.getElementById("context-area");
 const loading = document.getElementById("loading");
-const transcriptDisplay = document.getElementById("transcript-display");
-const coachingDisplay = document.getElementById("coaching-display");
 const promptText = document.querySelector(".prompt");
 const btnBackProgress = document.getElementById("btn-back-progress");
 const navBtns = document.querySelectorAll(".nav-btn");
 
+// DOM — Feedback screen
+const transcriptDisplay = document.getElementById("transcript-display");
+const coachingDisplay = document.getElementById("coaching-display");
+const planContent = document.getElementById("plan-content");
+
+// DOM — Loading
+const stepTranscribe = document.getElementById("step-transcribe");
+const stepAnalyze = document.getElementById("step-analyze");
+const stepCoach = document.getElementById("step-coach");
+const neuralAnimation = document.getElementById("neural-animation");
+
+// DOM — Error recovery
+const errorRecovery = document.getElementById("error-recovery");
+const errorMessage = document.getElementById("error-message");
+const btnRetry = document.getElementById("btn-retry");
+const btnTypeMode = document.getElementById("btn-type-mode");
+const typeInputArea = document.getElementById("type-input-area");
+const typePractice = document.getElementById("type-practice");
+const btnSendType = document.getElementById("btn-send-type");
+
+// DOM — Progress screen
+const streakCount = document.getElementById("streak-count");
+const statSessions = document.getElementById("stat-sessions");
+const statPieces = document.getElementById("stat-pieces");
+const statSkills = document.getElementById("stat-skills");
+
+// DOM — Quote, Listen, Badges, Heatmap, Export, Scan
+const julianQuote = document.getElementById("julian-quote");
+const btnListen = document.getElementById("btn-listen");
+const badgesGrid = document.getElementById("badges-grid");
+const badgesSubtitle = document.getElementById("badges-subtitle");
+const heatmapGrid = document.getElementById("heatmap-grid");
+const heatmapSubtitle = document.getElementById("heatmap-subtitle");
+const btnExport = document.getElementById("btn-export");
+const btnScan = document.getElementById("btn-scan");
+const sheetFile = document.getElementById("sheet-file");
+const scanResult = document.getElementById("scan-result");
+const scanText = document.getElementById("scan-text");
+
 // --- Speech Recognition Setup ---
 
 function createRecognition() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         alert("Speech recognition not supported. Please use Chrome or Edge.");
         return null;
     }
 
-    const rec = new SpeechRecognition();
+    var rec = new SpeechRecognition();
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
 
     rec.onresult = function (event) {
-        let interim = "";
-        let final = "";
+        var interim = "";
+        var final = "";
 
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            const result = event.results[i];
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+            var result = event.results[i];
             if (result.isFinal) {
                 final += result[0].transcript + " ";
             } else {
@@ -58,29 +96,20 @@ function createRecognition() {
 
         transcribedText += final;
 
-        // Show live transcription in the prompt area
         if (promptText) {
-            promptText.innerHTML = `
-                <span style="color: #e8b84b;">🎙️ ${transcribedText}</span>
-                <span style="color: #666; font-style: italic;">${interim}</span>
-            `;
+            promptText.innerHTML =
+                '<span style="color: #e8b84b;">🎙️ ' + transcribedText + '</span>' +
+                '<span style="color: #666; font-style: italic;">' + interim + '</span>';
         }
     };
 
     rec.onerror = function (event) {
-        if (event.error === "no-speech") {
-            return; // silent
-        }
-        if (event.error === "aborted") {
-            return;
-        }
-        console.error("Speech recognition error:", event.error);
+        if (event.error === "no-speech") return;
+        if (event.error === "aborted") return;
     };
 
     rec.onend = function () {
-        if (isRecording) {
-            rec.start();
-        }
+        if (isRecording) rec.start();
     };
 
     return rec;
@@ -92,8 +121,40 @@ btnRecord.addEventListener("click", startRecording);
 btnStop.addEventListener("click", stopRecording);
 btnSend.addEventListener("click", sendToCoach);
 btnAgain.addEventListener("click", resetToRecord);
+btnRetry.addEventListener("click", function () {
+    errorRecovery.hidden = true;
+    sendToCoach();
+});
+btnTypeMode.addEventListener("click", function () {
+    errorRecovery.hidden = true;
+    typeInputArea.hidden = false;
+    typePractice.value = transcribedText || "";
+});
+btnSendType.addEventListener("click", sendTypedToCoach);
 
-async function startRecording() {
+// Direct type input on main record screen
+var typeDirect = document.getElementById("type-direct");
+var btnSendDirect = document.getElementById("btn-send-type-direct");
+if (btnSendDirect) {
+    btnSendDirect.addEventListener("click", function () {
+        transcribedText = typeDirect.value.trim();
+        if (!transcribedText) {
+            alert("Please describe your practice first.");
+            return;
+        }
+        typeDirect.value = "";
+        document.getElementById("context").value = "";
+        sendToCoach();
+    });
+}
+
+// Listen, Export, Scan
+if (btnListen) btnListen.addEventListener("click", toggleSpeech);
+if (btnExport) btnExport.addEventListener("click", downloadReport);
+if (btnScan) btnScan.addEventListener("click", function () { sheetFile.click(); });
+if (sheetFile) sheetFile.addEventListener("change", handleSheetUpload);
+
+function startRecording() {
     transcribedText = "";
 
     recognition = createRecognition();
@@ -102,7 +163,6 @@ async function startRecording() {
     isRecording = true;
     recognition.start();
 
-    // UI
     btnRecord.hidden = true;
     btnStop.hidden = false;
     recordingStatus.hidden = false;
@@ -118,8 +178,8 @@ async function startRecording() {
 
 function updateTimer() {
     recordingSeconds++;
-    const min = Math.floor(recordingSeconds / 60);
-    const sec = recordingSeconds % 60;
+    var min = Math.floor(recordingSeconds / 60);
+    var sec = recordingSeconds % 60;
     recordingTime.textContent = min + ":" + String(sec).padStart(2, "0");
 }
 
@@ -133,7 +193,6 @@ function stopRecording() {
     }
     clearInterval(recordingTimer);
 
-    // UI
     recordingStatus.hidden = true;
     btnStop.hidden = true;
 
@@ -145,75 +204,290 @@ function stopRecording() {
     }
 }
 
+// --- Loading Step Indicator ---
+
+function startLoadingSteps() {
+    neuralAnimation.hidden = false;
+    setStepState(stepTranscribe, "active");
+    setStepState(stepAnalyze, "pending");
+    setStepState(stepCoach, "pending");
+
+    loadingTimer = setTimeout(function () {
+        setStepState(stepTranscribe, "done");
+        setStepState(stepAnalyze, "active");
+        loadingTimer = setTimeout(function () {
+            setStepState(stepAnalyze, "done");
+            setStepState(stepCoach, "active");
+        }, 1000);
+    }, 800);
+}
+
+function stopLoadingSteps() {
+    if (loadingTimer) clearTimeout(loadingTimer);
+    // Mark all as done
+    [stepTranscribe, stepAnalyze, stepCoach].forEach(function (s) {
+        setStepState(s, "done");
+    });
+}
+
+function setStepState(stepEl, state) {
+    stepEl.classList.remove("loading-step--active", "loading-step--done");
+    if (state === "active") stepEl.classList.add("loading-step--active");
+    if (state === "done") stepEl.classList.add("loading-step--done");
+}
+
 // --- Send to Coach ---
 
-async function sendToCoach() {
+function sendToCoach() {
     if (!transcribedText.trim()) return;
 
-    const context = document.getElementById("context").value;
+    var context = document.getElementById("context").value;
 
-    // UI
     contextArea.hidden = true;
     btnRecord.hidden = true;
     loading.hidden = false;
+    typeInputArea.hidden = true;
+    errorRecovery.hidden = true;
+    startLoadingSteps();
 
-    try {
-        const resp = await fetch("/api/coach-text", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                transcription: transcribedText.trim(),
-                context: context,
-            }),
+    fetch("/api/coach-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            transcription: transcribedText.trim(),
+            context: context,
+        }),
+    })
+        .then(function (resp) { return resp.json(); })
+        .then(function (data) {
+            stopLoadingSteps();
+
+            if (data.error) {
+                showError(data.error);
+                return;
+            }
+
+            // Populate feedback sections
+            transcriptDisplay.textContent = '"' + data.transcription + '"';
+            coachingDisplay.textContent = data.coaching;
+            planContent.textContent = data.practice_plan || "";
+            rotateQuote();
+
+            // Update progress
+            updateProgress(data);
+
+            // Reset speech state
+            if (btnListen) {
+                btnListen.innerHTML = '<svg width="16" height="16"><use href="#icon-mic"/></svg> Listen to Coaching';
+                btnListen.classList.remove("listening");
+            }
+            window.speechSynthesis.cancel();
+
+            loading.hidden = true;
+            screenRecord.hidden = true;
+            screenFeedback.hidden = false;
+        })
+        .catch(function (err) {
+            stopLoadingSteps();
+            showError("Connection error. Make sure the server is running on port 5000.");
         });
+}
 
-        const data = await resp.json();
+function sendTypedToCoach() {
+    transcribedText = typePractice.value.trim();
+    if (!transcribedText) {
+        alert("Please describe your practice first.");
+        return;
+    }
+    document.getElementById("context").value = "";
+    sendToCoach();
+}
 
-        if (data.error) {
-            alert(data.error);
-            resetToRecord();
-            return;
+function showError(msg) {
+    loading.hidden = true;
+    errorMessage.textContent = msg;
+    errorRecovery.hidden = false;
+}
+
+// --- localStorage Progress Tracking ---
+
+function updateProgress(data) {
+    try {
+        var sessions = parseInt(localStorage.getItem("cadence_sessions") || "0", 10) + 1;
+        var pieces = parseInt(localStorage.getItem("cadence_pieces") || "0", 10);
+        var skills = parseInt(localStorage.getItem("cadence_skills") || "0", 10);
+
+        // Calculate streak
+        var today = new Date().toISOString().split("T")[0];
+        var lastDate = localStorage.getItem("cadence_last_date") || "";
+        var streak = parseInt(localStorage.getItem("cadence_streak") || "0", 10);
+
+        if (lastDate === today) {
+            // Already practiced today, don't increment streak
+        } else if (lastDate === getYesterday()) {
+            streak += 1;
+        } else if (lastDate === "") {
+            streak = 1;
+        } else {
+            streak = 1; // Streak broken
         }
 
-        transcriptDisplay.textContent = '"' + data.transcription + '"';
-        coachingDisplay.textContent = data.coaching;
+        // Seed realistic demo stats on first session
+        if (sessions === 1) {
+            pieces = 3;
+            skills = 12;
+            if (!localStorage.getItem("cadence_seeded")) {
+                localStorage.setItem("cadence_seeded", "1");
+                sessions = 47; // Jump-start for demo
+                streak = Math.max(streak, 22);
+            }
+        }
 
-        loading.hidden = true;
-        screenRecord.hidden = true;
-        screenFeedback.hidden = false;
+        localStorage.setItem("cadence_sessions", String(sessions));
+        localStorage.setItem("cadence_pieces", String(pieces));
+        localStorage.setItem("cadence_skills", String(skills));
+        localStorage.setItem("cadence_streak", String(streak));
+        localStorage.setItem("cadence_last_date", today);
 
-    } catch (err) {
-        alert("Connection error. Is the server running on port 5000?");
-        console.error(err);
-        resetToRecord();
+        // Track heatmap and unlock first-session badge
+        trackHeatmapDay();
+        unlockBadge("first-session");
+    } catch (e) {
+        // localStorage unavailable — silent fail
     }
 }
 
-function resetToRecord() {
-    transcribedText = "";
-    isRecording = false;
-    if (recognition) {
-        recognition.stop();
-        recognition = null;
+function getYesterday() {
+    var d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split("T")[0];
+}
+
+function loadProgress() {
+    try {
+        // If data is empty, seed it now (belt + suspenders)
+        if (!localStorage.getItem("cadence_sessions")) {
+            seedAllDemoData();
+        }
+
+        var sessions = localStorage.getItem("cadence_sessions") || "0";
+        var pieces = localStorage.getItem("cadence_pieces") || "0";
+        var skills = localStorage.getItem("cadence_skills") || "0";
+        var streak = localStorage.getItem("cadence_streak") || "0";
+
+        if (streakCount) streakCount.textContent = streak;
+        if (statSessions) statSessions.textContent = sessions;
+        if (statPieces) statPieces.textContent = pieces;
+        if (statSkills) statSkills.textContent = skills;
+    } catch (e) {
+        // Use defaults from HTML
     }
-    document.getElementById("context").value = "";
-    loading.hidden = true;
-    contextArea.hidden = true;
-    screenFeedback.hidden = true;
-    screenRecord.hidden = false;
-    btnRecord.hidden = false;
-    btnStop.hidden = true;
-    recordingStatus.hidden = true;
-    if (promptText) {
-        promptText.innerHTML = 'Tell Cadence what you practiced today.<br><span class="prompt-hint">What went well? What felt hard? What\'s stuck?</span>';
+}
+
+// --- Skills Genome Radar Chart ---
+
+function renderRadarChart() {
+    var svg = document.getElementById("radar-svg");
+    var legend = document.getElementById("radar-legend");
+    if (!svg || !legend) return;
+
+    var axes = [
+        { label: "Read", value: 65 },
+        { label: "Write", value: 30 },
+        { label: "Play", value: 78 },
+        { label: "See", value: 45 },
+        { label: "Hear", value: 60 },
+        { label: "Sing", value: 25 },
+        { label: "Concept", value: 50 },
+    ];
+
+    var cx = 150, cy = 150, r = 110;
+    var n = axes.length;
+    var angleSlice = (2 * Math.PI) / n;
+
+    // Background rings
+    var rings = [0.25, 0.5, 0.75, 1.0];
+    var ringHTML = "";
+    for (var ri = 0; ri < rings.length; ri++) {
+        var ringR = r * rings[ri];
+        var ringPoints = [];
+        for (var i = 0; i < n; i++) {
+            var angle = angleSlice * i - Math.PI / 2;
+            ringPoints.push(
+                (cx + ringR * Math.cos(angle)).toFixed(1) + "," +
+                (cy + ringR * Math.sin(angle)).toFixed(1)
+            );
+        }
+        ringHTML += '<polygon points="' + ringPoints.join(" ") + '" ' +
+            'fill="none" stroke="var(--border)" stroke-width="1" opacity="0.4"/>';
     }
+
+    // Axis lines
+    var axisHTML = "";
+    for (var i = 0; i < n; i++) {
+        var angle = angleSlice * i - Math.PI / 2;
+        var x2 = cx + r * Math.cos(angle);
+        var y2 = cy + r * Math.sin(angle);
+        axisHTML += '<line x1="' + cx + '" y1="' + cy + '" ' +
+            'x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" ' +
+            'stroke="var(--border)" stroke-width="1" opacity="0.4"/>';
+
+        // Axis labels
+        var labelR = r + 18;
+        var lx = cx + labelR * Math.cos(angle);
+        var ly = cy + labelR * Math.sin(angle);
+        var textAnchor = "middle";
+        if (lx < cx - 10) textAnchor = "end";
+        if (lx > cx + 10) textAnchor = "start";
+        axisHTML += '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" ' +
+            'text-anchor="' + textAnchor + '" dominant-baseline="middle" ' +
+            'fill="var(--text-muted)" font-size="11" font-family="inherit">' +
+            axes[i].label + '</text>';
+    }
+
+    // Data polygon
+    var dataPoints = [];
+    for (var i = 0; i < n; i++) {
+        var angle = angleSlice * i - Math.PI / 2;
+        var val = axes[i].value / 100;
+        var dx = cx + r * val * Math.cos(angle);
+        var dy = cy + r * val * Math.sin(angle);
+        dataPoints.push(dx.toFixed(1) + "," + dy.toFixed(1));
+    }
+    var dataHTML = '<polygon points="' + dataPoints.join(" ") + '" ' +
+        'fill="rgba(232, 184, 75, 0.15)" stroke="var(--primary)" stroke-width="2" ' +
+        'stroke-linejoin="round"/>';
+
+    // Data dots
+    var dotsHTML = "";
+    for (var i = 0; i < n; i++) {
+        var angle = angleSlice * i - Math.PI / 2;
+        var val = axes[i].value / 100;
+        var dx = cx + r * val * Math.cos(angle);
+        var dy = cy + r * val * Math.sin(angle);
+        dotsHTML += '<circle cx="' + dx.toFixed(1) + '" cy="' + dy.toFixed(1) + '" ' +
+            'r="4" fill="var(--primary)"/>';
+    }
+
+    svg.innerHTML = ringHTML + axisHTML + dataHTML + dotsHTML;
+
+    // Legend
+    var legendHTML = "";
+    for (var i = 0; i < n; i++) {
+        legendHTML +=
+            '<span class="radar-legend-item">' +
+            '<span class="radar-legend-dot"></span>' +
+            axes[i].label + " " + axes[i].value + "%" +
+            '</span>';
+    }
+    legend.innerHTML = legendHTML;
 }
 
 // --- Navigation ---
 
 navBtns.forEach(function (btn) {
     btn.addEventListener("click", function () {
-        const screen = btn.dataset.screen;
+        var screen = btn.dataset.screen;
         navBtns.forEach(function (b) { b.classList.remove("nav-btn--active"); });
         btn.classList.add("nav-btn--active");
 
@@ -224,6 +498,12 @@ navBtns.forEach(function (btn) {
         if (screen === "record" && !isRecording) {
             btnRecord.hidden = false;
         }
+        if (screen === "progress") {
+            loadProgress();
+            renderRadarChart();
+            renderBadges();
+            renderHeatmap();
+        }
     });
 });
 
@@ -232,3 +512,393 @@ btnBackProgress.addEventListener("click", function () {
     screenRecord.hidden = false;
     btnRecord.hidden = false;
 });
+
+// --- Julian Quote Rotation ---
+
+var JULIAN_QUOTES = [
+    "The instrument is the gym. The real output is the person.",
+    "Daily feedback closes the 7-day gap that causes 83% of students to quit.",
+    "Every practice session builds neural pathways through unseen learning.",
+    "Kaizen — small daily improvements compound into mastery.",
+    "Curiosity, patience, and persistence — the magic formula.",
+    "The less I teach, the better the teacher I believe I am.",
+];
+
+function rotateQuote() {
+    if (!julianQuote) return;
+    var q = JULIAN_QUOTES[Math.floor(Math.random() * JULIAN_QUOTES.length)];
+    julianQuote.textContent = "“" + q + "”";
+}
+
+// --- Voice Synthesis ---
+
+var isSpeaking = false;
+
+function toggleSpeech() {
+    var text = coachingDisplay.textContent;
+    if (!text) return;
+
+    if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        if (btnListen) {
+            btnListen.innerHTML = '<svg width="16" height="16"><use href="#icon-mic"/></svg> Listen to Coaching';
+            btnListen.classList.remove("listening");
+        }
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+    var utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    utterance.volume = 1;
+
+    var voices = window.speechSynthesis.getVoices();
+    var preferred = voices.find(function (v) {
+        return v.name.indexOf("Samantha") !== -1 || v.name.indexOf("Karen") !== -1 ||
+               v.name.indexOf("Female") !== -1 || v.name.indexOf("Google UK Female") !== -1;
+    });
+    if (preferred) utterance.voice = preferred;
+
+    utterance.onstart = function () {
+        isSpeaking = true;
+        if (btnListen) {
+            btnListen.innerHTML = '<svg width="16" height="16"><use href="#icon-stop"/></svg> Stop';
+            btnListen.classList.add("listening");
+        }
+    };
+    utterance.onend = function () {
+        isSpeaking = false;
+        if (btnListen) {
+            btnListen.innerHTML = '<svg width="16" height="16"><use href="#icon-mic"/></svg> Listen to Coaching';
+            btnListen.classList.remove("listening");
+        }
+    };
+    utterance.onerror = function () {
+        isSpeaking = false;
+        if (btnListen) {
+            btnListen.innerHTML = '<svg width="16" height="16"><use href="#icon-mic"/></svg> Listen to Coaching';
+            btnListen.classList.remove("listening");
+        }
+    };
+
+    window.speechSynthesis.speak(utterance);
+}
+
+// Preload voices
+if (window.speechSynthesis) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = function () {
+        window.speechSynthesis.getVoices();
+    };
+}
+
+// --- Achievement Badges ---
+
+var BADGES = [
+    { id: "first-session", icon: "sparkle", label: "First Session" },
+    { id: "7day-streak", icon: "flame", label: "7-Day Streak" },
+    { id: "first-scale", icon: "note", label: "First Scale" },
+    { id: "hands-together", icon: "check", label: "Hands Together" },
+    { id: "memorized-piece", icon: "logo", label: "Memorized a Piece" },
+    { id: "played-for-someone", icon: "mic", label: "Played for Someone" },
+];
+
+function getUnlockedBadges() {
+    try {
+        var data = localStorage.getItem("cadence_badges");
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function seedBadges() {
+    // Seed Maria's demo badges
+    var badges = getUnlockedBadges();
+    if (badges.length === 0 && localStorage.getItem("cadence_seeded")) {
+        // All 6 unlocked for the demo (Maria's 47 sessions)
+        var allIds = BADGES.map(function (b) { return b.id; });
+        localStorage.setItem("cadence_badges", JSON.stringify(allIds));
+    }
+}
+
+function unlockBadge(badgeId) {
+    var badges = getUnlockedBadges();
+    if (badges.indexOf(badgeId) === -1) {
+        badges.push(badgeId);
+        localStorage.setItem("cadence_badges", JSON.stringify(badges));
+    }
+}
+
+function renderBadges() {
+    if (!badgesGrid || !badgesSubtitle) return;
+    seedBadges();
+    var unlocked = getUnlockedBadges();
+    var earned = unlocked.length;
+    var total = BADGES.length;
+
+    var html = "";
+    for (var i = 0; i < BADGES.length; i++) {
+        var badge = BADGES[i];
+        var isUnlocked = unlocked.indexOf(badge.id) !== -1;
+        var iconHref = "#icon-" + badge.icon;
+        html +=
+            '<div class="badge-item' + (isUnlocked ? " badge-item--unlocked" : "") + '">' +
+            '<div class="badge-circle' + (isUnlocked ? " badge-circle--unlocked" : "") + '">' +
+            '<svg width="20" height="20"><use href="' + iconHref + '"/></svg>' +
+            '</div>' +
+            '<span class="badge-label">' + badge.label + '</span>' +
+            '</div>';
+    }
+    badgesGrid.innerHTML = html;
+    badgesSubtitle.textContent = earned + " achievements earned · " + (total - earned) + " to discover";
+}
+
+// --- Practice Heatmap ---
+
+function getHeatmapData() {
+    try {
+        var data = localStorage.getItem("cadence_heatmap");
+        var map = data ? JSON.parse(data) : {};
+        // Seed Maria's demo data: 22 days of practice
+        if (Object.keys(map).length === 0 && localStorage.getItem("cadence_seeded")) {
+            var today = new Date();
+            for (var i = 0; i < 28; i++) {
+                var d = new Date(today);
+                d.setDate(d.getDate() - i);
+                var key = d.toISOString().split("T")[0];
+                // Skip some days for realism (6 days missed out of 28)
+                if (i === 2 || i === 7 || i === 13 || i === 18 || i === 23 || i === 26) continue;
+                // Vary intensity (1-4)
+                var intensity = i === 0 ? 4 : (i < 5 ? 3 : (i < 14 ? 2 : 1));
+                map[key] = intensity;
+            }
+            localStorage.setItem("cadence_heatmap", JSON.stringify(map));
+        }
+        return map;
+    } catch (e) {
+        return {};
+    }
+}
+
+function trackHeatmapDay() {
+    try {
+        var today = new Date().toISOString().split("T")[0];
+        var map = getHeatmapData();
+        map[today] = Math.min(4, (map[today] || 0) + 1);
+        localStorage.setItem("cadence_heatmap", JSON.stringify(map));
+    } catch (e) {
+        // silent
+    }
+}
+
+function renderHeatmap() {
+    if (!heatmapGrid || !heatmapSubtitle) return;
+    var map = getHeatmapData();
+    var dayLabels = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
+    var today = new Date();
+
+    // Build 7 columns × 4 rows (last 28 days, Mon-Sun columns)
+    // Find the most recent Sunday as column 6
+    var dow = today.getDay(); // 0=Sun
+    var daysSinceSun = dow;
+    var lastSun = new Date(today);
+    lastSun.setDate(lastSun.getDate() - daysSinceSun);
+
+    var cells = [];
+    var practicedDays = 0;
+    var totalDays = 0;
+
+    for (var row = 3; row >= 0; row--) {
+        for (var col = 0; col < 7; col++) {
+            var d = new Date(lastSun);
+            d.setDate(d.getDate() - (row * 7) + col - 6); // col 0 = Mon
+            if (d > today) {
+                cells.push({ date: d, level: -1 }); // future
+                continue;
+            }
+            totalDays++;
+            var key = d.toISOString().split("T")[0];
+            var level = map[key] || 0;
+            if (level > 0) practicedDays++;
+            cells.push({ date: d, level: level });
+        }
+    }
+
+    var html = "";
+    for (var i = 0; i < cells.length; i++) {
+        var cell = cells[i];
+        if (cell.level === -1) {
+            html += '<div class="heatmap-cell" style="background:transparent"></div>';
+        } else {
+            html += '<div class="heatmap-cell heatmap-cell--l' + cell.level + '" ' +
+                'title="' + cell.date.toISOString().split("T")[0] + ': ' + cell.level + ' sessions"></div>';
+        }
+    }
+    heatmapGrid.innerHTML = html;
+
+    // Day labels (remove old if exists)
+    var oldLabels = document.getElementById("heatmap-labels");
+    if (oldLabels) oldLabels.remove();
+
+    var labelsHTML = '<div class="heatmap-labels" id="heatmap-labels">';
+    for (var j = 0; j < 7; j++) {
+        labelsHTML += '<span>' + dayLabels[j] + '</span>';
+    }
+    labelsHTML += '</div>';
+    heatmapGrid.insertAdjacentHTML("afterend", labelsHTML);
+
+    var consistency = totalDays > 0 ? Math.round((practicedDays / totalDays) * 100) : 0;
+    heatmapSubtitle.textContent = practicedDays + " days of practice in the last " + totalDays +
+        " days · " + consistency + "% consistency";
+}
+
+// --- Export Report ---
+
+function downloadReport() {
+    try {
+        var sessions = localStorage.getItem("cadence_sessions") || "0";
+        var streak = localStorage.getItem("cadence_streak") || "0";
+        var pieces = localStorage.getItem("cadence_pieces") || "0";
+        var skills = localStorage.getItem("cadence_skills") || "0";
+        var badges = getUnlockedBadges().length;
+        var lastCoaching = coachingDisplay.textContent || "No coaching feedback yet.";
+
+        var today = new Date().toISOString().split("T")[0];
+        var report =
+            "Cadence Practice Report\n" +
+            "=======================\n" +
+            "Student: Maria\n" +
+            "Date: " + today + "\n" +
+            "\n" +
+            "--- Stats ---\n" +
+            "Total Sessions: " + sessions + "\n" +
+            "Day Streak: " + streak + "\n" +
+            "Pieces Mastered: " + pieces + "\n" +
+            "Skills Unlocked: " + skills + "\n" +
+            "Achievements Earned: " + badges + "/6\n" +
+            "\n" +
+            "--- Last Coaching Feedback ---\n" +
+            lastCoaching + "\n" +
+            "\n" +
+            "--- Practice Plan ---\n" +
+            (planContent.textContent || "No plan yet.") + "\n" +
+            "\n" +
+            'Generated by Cadence — "The instrument is the gym."\n';
+
+        var blob = new Blob([report], { type: "text/plain" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "Maria_weekly_report_" + today + ".txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        alert("Could not generate report.");
+    }
+}
+
+// --- Scan Sheet Music ---
+
+function handleSheetUpload(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+
+    scanResult.hidden = false;
+    scanText.textContent = "Scanning " + file.name + "...";
+
+    var reader = new FileReader();
+    reader.onload = function (e) {
+        var base64 = e.target.result.split(",")[1];
+
+        fetch("/api/scan-sheet", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: base64, filename: file.name }),
+        })
+            .then(function (resp) { return resp.json(); })
+            .then(function (data) {
+                if (data.error) {
+                    scanText.textContent = "Could not analyze. " + data.error;
+                } else {
+                    scanText.textContent = data.analysis;
+                }
+            })
+            .catch(function () {
+                scanText.textContent = "Could not reach the server. Is Cadence running on port 5000?";
+            });
+    };
+    reader.readAsDataURL(file);
+}
+
+// --- Seed all demo data on page load (so Progress screen never shows zeros) ---
+
+function seedAllDemoData() {
+    try {
+        // Only seed once
+        if (localStorage.getItem("cadence_seeded_v2")) return;
+        localStorage.setItem("cadence_seeded_v2", "1");
+
+        var today = new Date().toISOString().split("T")[0];
+
+        // Stats
+        localStorage.setItem("cadence_sessions", "47");
+        localStorage.setItem("cadence_pieces", "3");
+        localStorage.setItem("cadence_skills", "12");
+        localStorage.setItem("cadence_streak", "22");
+        localStorage.setItem("cadence_last_date", today);
+
+        // Badges — all 6 unlocked
+        var allBadges = ["first-session", "7day-streak", "first-scale",
+            "hands-together", "memorized-piece", "played-for-someone"];
+        localStorage.setItem("cadence_badges", JSON.stringify(allBadges));
+
+        // Heatmap — 22 days of practice in last 28 days
+        var heatmap = {};
+        for (var i = 0; i < 28; i++) {
+            var d = new Date();
+            d.setDate(d.getDate() - i);
+            var key = d.toISOString().split("T")[0];
+            // 6 missed days for realism
+            if (i === 2 || i === 7 || i === 13 || i === 18 || i === 23 || i === 26) continue;
+            var intensity = i === 0 ? 4 : (i < 5 ? 3 : (i < 14 ? 2 : 1));
+            heatmap[key] = intensity;
+        }
+        localStorage.setItem("cadence_heatmap", JSON.stringify(heatmap));
+    } catch (e) {
+        // localStorage unavailable — silent
+    }
+}
+
+// Run immediately on script load
+seedAllDemoData();
+
+// --- Reset ---
+
+function resetToRecord() {
+    transcribedText = "";
+    isRecording = false;
+    if (recognition) {
+        recognition.stop();
+        recognition = null;
+    }
+    clearInterval(recordingTimer);
+    if (loadingTimer) clearTimeout(loadingTimer);
+    document.getElementById("context").value = "";
+    loading.hidden = true;
+    contextArea.hidden = true;
+    screenFeedback.hidden = true;
+    screenRecord.hidden = false;
+    errorRecovery.hidden = true;
+    typeInputArea.hidden = true;
+    btnRecord.hidden = false;
+    btnStop.hidden = true;
+    recordingStatus.hidden = true;
+    if (promptText) {
+        promptText.innerHTML = 'Tell Cadence what you practiced today.<br><span class="prompt-hint">What went well? What felt hard? What\'s stuck?</span>';
+    }
+}

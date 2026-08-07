@@ -38,10 +38,11 @@ def coach_text():
     if not transcription:
         return jsonify({"error": "No transcription provided"}), 400
 
-    coaching = _client.coach(transcription, user_context)
+    result = _client.coach(transcription, user_context)
     return jsonify({
         "transcription": transcription,
-        "coaching": coaching,
+        "coaching": result["coaching"],
+        "practice_plan": result["practice_plan"],
         "provider": _client.provider,
     })
 
@@ -50,6 +51,30 @@ def coach_text():
 def health():
     return jsonify({
         "status": "ok",
+        "provider": _client.provider,
+    })
+
+
+@app.route("/api/scan-sheet", methods=["POST"])
+def scan_sheet():
+    """
+    Analyze a sheet music photo via AI vision or mock fallback.
+    Accepts base64-encoded image + filename.
+    Returns {analysis: string}.
+    """
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    image_b64 = data.get("image", "")
+    filename = data.get("filename", "sheet.jpg")
+
+    if not image_b64:
+        return jsonify({"error": "No image provided"}), 400
+
+    result = _client.scan_sheet(image_b64, filename)
+    return jsonify({
+        "analysis": result["analysis"],
         "provider": _client.provider,
     })
 
