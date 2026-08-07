@@ -192,14 +192,21 @@ function stopRecording() {
         recognition = null;
     }
     clearInterval(recordingTimer);
+    recordingTimer = null;
 
     recordingStatus.hidden = true;
     btnStop.hidden = true;
+    recordingTime.textContent = "0:00";
 
     if (transcribedText.trim()) {
         contextArea.hidden = false;
+        // Show type input block for context, keep text input available
+        document.getElementById("type-input-block").hidden = false;
     } else {
-        alert("I didn't catch anything. Please try again — speak clearly into your mic.");
+        // Non-blocking: show inline hint instead of alert()
+        if (promptText) {
+            promptText.innerHTML = '<span style="color: #e07070;">I didn\'t catch anything. Try again — speak clearly into your mic, or type below.</span>';
+        }
         resetToRecord();
     }
 }
@@ -887,14 +894,17 @@ function resetToRecord() {
         recognition = null;
     }
     clearInterval(recordingTimer);
+    recordingTimer = null;
     if (loadingTimer) clearTimeout(loadingTimer);
     document.getElementById("context").value = "";
+    recordingTime.textContent = "0:00";
     loading.hidden = true;
     contextArea.hidden = true;
     screenFeedback.hidden = true;
     screenRecord.hidden = false;
     errorRecovery.hidden = true;
     typeInputArea.hidden = true;
+    document.getElementById("type-input-block").hidden = false;
     btnRecord.hidden = false;
     btnStop.hidden = true;
     recordingStatus.hidden = true;
