@@ -271,10 +271,12 @@ class AIClient:
 
     def coach(self, transcription: str, context: str = "") -> dict:
         """Generate coaching. Returns {coaching, practice_plan}. Demo cache → Featherless → Groq → Mock."""
-        # Check demo cache first — guarantees the demo script always works
-        cached = _check_demo_cache(transcription)
-        if cached:
-            return cached
+        # Skip demo cache when audio analysis is present — we want the AI to use note data
+        has_audio = "🎹 LIVE AUDIO ANALYSIS" in context or "AUDIO ANALYSIS" in context
+        if not has_audio:
+            cached = _check_demo_cache(transcription)
+            if cached:
+                return cached
         # Try all available providers in order, falling through on failure
         if self.featherless_key:
             result = self._call_featherless(transcription, context)

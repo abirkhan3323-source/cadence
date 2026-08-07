@@ -9,6 +9,7 @@ Priority: Featherless API > Groq (free tier) > Mock (keyword-match)
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from ai_client import get_client
+import numpy as np
 
 app = Flask(__name__)
 CORS(app)
@@ -106,13 +107,25 @@ def coach_audio():
             audio_metrics = {"error": "Audio analysis failed, using text only"}
 
     enriched_context = context
-    if audio_metrics and "error" not in audio_metrics:
+    if audio_metrics and audio_metrics.get("success"):
+        m = audio_metrics
+        notes = ", ".join(m.get("detected_notes", [])[:15])
         enriched_context += (
-            f"\n[AUDIO ANALYSIS: Volume={audio_metrics.get('rms_level', 'unknown')}, "
-            f"Tempo consistency={audio_metrics.get('tempo_consistency', 'unknown')}, "
-            f"Tone quality={audio_metrics.get('tone_quality', 'unknown')}, "
-            f"Note count={audio_metrics.get('onset_count', 'unknown')}]"
+            f"\n\n[🎹 LIVE AUDIO ANALYSIS — You just HEARD the student play:]"
+            f"\n- Notes detected: {notes}"
+            f"\n- Total notes: {m.get('note_count', 0)}"
+            f"\n- Tempo: ~{m.get('tempo_bpm', '?')} BPM"
+            f"\n- Hesitations detected: {m.get('hesitation_count', 0)}"
+            f"\n- Off-pitch notes (30+ cents): {m.get('off_pitch_notes', 0)}"
+            f"\n- Duration: {m.get('duration_seconds', 0)}s"
+            f"\n- Musical summary: {m.get('musical_summary', '')}"
+            f"\n\nIMPORTANT: Reference these specific notes in your coaching. "
+            f"If there are hesitations or off-pitch notes, point them out specifically. "
+            f"Tell the student exactly WHICH notes need work and what to practice next."
+            f"\nYou HEARD them play — respond as if you were sitting next to them at the piano."
         )
+    elif audio_metrics and audio_metrics.get("error"):
+        enriched_context += f"\n[Audio was recorded but analysis failed: {audio_metrics['error']}]"
 
     result = _client.coach(transcription, enriched_context)
     return jsonify({
@@ -126,8 +139,8 @@ def coach_audio():
 
 def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
     """
-    Analyze recorded piano audio for basic acoustic metrics.
-    Uses wave module for WAV, falls back to heuristic analysis for webm/other.
+    Analyze piano audio: FFT pitch detection, note identification,
+    onset timing, tempo estimation, hesitation detection.
     """
     import base64
     import io
@@ -135,7 +148,127 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
     import wave
 
     raw = base64.b64decode(b64_data)
-    metrics = {"format": mime_type}
+    metrics: dict = {"format": mime_type, "success": False}
+
+    samples = _decode_wav(raw)
+    if samples is None:
+        metrics.update({
+            "duration_seconds": round(len(raw) / 16000, 1),
+            "note": "Audio received but could not decode to WAV. Try recording again.",
+            "detected_notes": [],
+            "tempo_bpm": 0,
+            "hesitation_count": 0,
+        })
+        return metrics
+
+    duration = len(samples) / 44100
+    metrics["duration_seconds"] = round(duration, 1)
+    metrics["success"] = True
+
+    # ── FFT-based note detection ──
+    sr = 44100
+    window_size = 4096
+    hop_size = window_size // 2
+    note_names = _note_names()
+
+    detected_notes = []
+    onset_times = []
+    prev_freq = 0
+    silence_threshold = 0.02
+
+    for start in range(0, len(samples) - window_size, hop_size):
+        window = np.array(samples[start:start + window_size], dtype=np.float32)
+        rms = float(np.sqrt(np.mean(window ** 2)))
+
+        if rms < silence_threshold:
+            continue  # silence
+
+        # Hann window + FFT
+        hann = 0.5 * (1 - np.cos(2 * np.pi * np.arange(window_size) / (window_size - 1)))
+        fft = np.abs(np.fft.rfft(window * hann))
+        freqs = np.fft.rfftfreq(window_size, 1.0 / sr)
+
+        # Find dominant frequency in piano range (27.5 Hz A0 — 4186 Hz C8)
+        mask = (freqs >= 27.5) & (freqs <= 4200)
+        if not np.any(mask):
+            continue
+        peak_idx = int(np.argmax(fft[mask]))
+        peak_freq = float(freqs[mask][peak_idx])
+        peak_mag = float(fft[mask][peak_idx])
+
+        if peak_mag < 5:
+            continue
+
+        # Map frequency to note
+        midi = 69 + 12 * np.log2(peak_freq / 440.0)
+        midi_note = int(round(midi))
+        note_name = note_names[midi_note % 12] + str(midi_note // 12 - 1)
+        cents_off = int(round(100 * (midi - midi_note)))
+
+        # Detect onset (new note started)
+        if abs(peak_freq - prev_freq) > peak_freq * 0.05 or not detected_notes:
+            onset_time = start / sr
+            detected_notes.append({
+                "note": note_name,
+                "freq_hz": round(peak_freq, 1),
+                "cents_off": cents_off,
+                "time_sec": round(onset_time, 1),
+                "velocity": round(min(100, rms * 1000), 1),
+            })
+            onset_times.append(onset_time)
+            prev_freq = peak_freq
+
+    # ── Deduplicate adjacent repeated notes ──
+    unique_notes = []
+    for n in detected_notes:
+        if not unique_notes or unique_notes[-1]["note"] != n["note"]:
+            unique_notes.append(n)
+    detected_notes = unique_notes
+
+    # ── Tempo estimation from onsets ──
+    tempo_bpm = 0
+    if len(onset_times) >= 3:
+        iois = [onset_times[i+1] - onset_times[i] for i in range(len(onset_times)-1)]
+        iois = [i for i in iois if 0.15 < i < 3.0]  # filter outliers
+        if iois:
+            median_ioi = float(np.median(iois))
+            tempo_bpm = int(round(60.0 / median_ioi)) if median_ioi > 0 else 0
+
+    # ── Hesitation detection ──
+    hesitations = 0
+    if len(onset_times) >= 2:
+        for i in range(1, len(onset_times)):
+            gap = onset_times[i] - onset_times[i-1]
+            if gap > 1.5:  # gap > 1.5 seconds = hesitation
+                hesitations += 1
+
+    # ── Note sequence analysis ──
+    played_sequence = [n["note"] for n in detected_notes]
+    off_notes = [n for n in detected_notes if abs(n["cents_off"]) > 30]
+
+    # ── Build musical summary ──
+    note_list = ", ".join(played_sequence[:12])
+    if len(played_sequence) > 12:
+        note_list += f" ... ({len(played_sequence)} notes total)"
+
+    metrics.update({
+        "detected_notes": played_sequence,
+        "note_count": len(played_sequence),
+        "tempo_bpm": tempo_bpm,
+        "hesitation_count": hesitations,
+        "off_pitch_notes": len(off_notes),
+        "velocity_range": f"{min(n['velocity'] for n in detected_notes) if detected_notes else 0}-{max(n['velocity'] for n in detected_notes) if detected_notes else 0}%",
+        "musical_summary": f"Detected {len(played_sequence)} notes: {note_list}. Tempo: ~{tempo_bpm} BPM. Hesitations: {hesitations}. Off-pitch notes: {len(off_notes)}.",
+    })
+
+    return metrics
+
+
+def _decode_wav(raw: bytes):
+    """Decode WAV bytes to int16 sample list. Returns None on failure."""
+    import io
+    import struct
+    import wave
 
     try:
         with wave.open(io.BytesIO(raw), 'rb') as wf:
@@ -143,61 +276,32 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
             framerate = wf.getframerate()
             sample_width = wf.getsampwidth()
             n_channels = wf.getnchannels()
-            duration = n_frames / framerate if framerate > 0 else 0
 
             frames = wf.readframes(min(n_frames, framerate * 30))
-            wf.close()
 
             if sample_width == 2:
                 fmt = f"<{len(frames)//2}h"
-                samples = struct.unpack(fmt, frames[:len(frames)//2*2])
+                raw_samples = struct.unpack(fmt, frames[:len(frames)//2*2])
             elif sample_width == 1:
-                samples = [b - 128 for b in frames]
+                raw_samples = [b - 128 for b in frames]
             else:
-                samples = []
+                return None
 
-            if samples:
-                squared = [s*s for s in samples]
-                rms = (sum(squared) / len(squared)) ** 0.5
-                max_amp = max(abs(s) for s in samples)
-                rms_norm = min(100, round((rms / 32768) * 100)) if sample_width == 2 else min(100, round((rms / 128) * 100))
+            # Convert to mono float if multi-channel
+            if n_channels > 1:
+                mono = []
+                for i in range(0, len(raw_samples), n_channels):
+                    mono.append(raw_samples[i])
+                raw_samples = mono
 
-                zcr = 0
-                for i in range(1, len(samples)):
-                    if (samples[i] >= 0) != (samples[i-1] >= 0):
-                        zcr += 1
-                zcr_rate = zcr / len(samples) if samples else 0
-
-                onsets = 0
-                threshold = rms * 1.5
-                above = False
-                for s in samples:
-                    if abs(s) > threshold and not above:
-                        onsets += 1
-                        above = True
-                    elif abs(s) <= threshold * 0.5:
-                        above = False
-
-                metrics.update({
-                    "duration_seconds": round(duration, 1),
-                    "sample_rate": framerate,
-                    "rms_level": f"{rms_norm}%",
-                    "zero_crossing_rate": round(zcr_rate, 4),
-                    "onset_count": onsets,
-                    "tempo_consistency": "steady" if onsets > 0 and onsets < duration * 4 else "variable",
-                    "tone_quality": "bright" if rms_norm > 50 else "warm" if rms_norm > 20 else "soft",
-                })
+            return list(raw_samples)
     except Exception:
-        metrics.update({
-            "duration_seconds": round(len(raw) / 16000, 1),
-            "rms_level": f"{min(100, max(5, len(raw) // 1000))}%",
-            "tempo_consistency": "unknown (non-WAV format)",
-            "tone_quality": "unknown (non-WAV format)",
-            "onset_count": max(1, len(raw) // 8000),
-            "note": "Audio recorded. Full analysis requires WAV format or server-side conversion.",
-        })
+        return None
 
-    return metrics
+
+def _note_names() -> list:
+    """Return list of 12 note names starting from C."""
+    return ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
 
 if __name__ == "__main__":

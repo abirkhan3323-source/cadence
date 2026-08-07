@@ -380,15 +380,17 @@ function sendToCoach() {
         context: context,
     };
 
-    // Include audio if recorded
+    // Include audio if recorded — convert to WAV for proper analysis
     if (audioBlob) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            payload.audio = e.target.result.split(",")[1];
-            payload.audio_mime = audioBlob.type;
-            doSendToCoach(payload);
-        };
-        reader.readAsDataURL(audioBlob);
+        convertBlobToWav(audioBlob, function(wavBlob) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                payload.audio = e.target.result.split(",")[1];
+                payload.audio_mime = "audio/wav";
+                doSendToCoach(payload);
+            };
+            reader.readAsDataURL(wavBlob);
+        });
         return;
     }
 
@@ -1186,6 +1188,71 @@ function updateAudioLevel() {
 
     if (audioLevel) audioLevel.style.width = level + "%";
     if (isRecordingAudio) requestAnimationFrame(updateAudioLevel);
+}
+
+// --- WAV Conversion (for server-side note analysis) ---
+
+function convertBlobToWav(audioBlob, callback) {
+    // Decode compressed audio (webm/ogg) to raw PCM via AudioContext
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var reader = new FileReader();
+
+    reader.onload = function(e) {
+        ctx.decodeAudioData(e.target.result, function(audioBuffer) {
+            var pcm = audioBuffer.getChannelData(0);         // Float32, mono
+            var sampleRate = audioBuffer.sampleRate;
+            var numSamples = pcm.length;
+            var bitsPerSample = 16;
+            var bytesPerSample = bitsPerSample / 8;
+            var dataLength = numSamples * bytesPerSample;
+
+            // Build WAV header + PCM data
+            var buffer = new ArrayBuffer(44 + dataLength);
+            var view = new DataView(buffer);
+
+            // RIFF header
+            writeString(view, 0, "RIFF");
+            view.setUint32(4, 36 + dataLength, true);
+            writeString(view, 8, "WAVE");
+
+            // fmt subchunk
+            writeString(view, 12, "fmt ");
+            view.setUint32(16, 16, true);                    // PCM
+            view.setUint16(20, 1, true);                     // format = 1
+            view.setUint16(22, 1, true);                     // mono
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * bytesPerSample, true);
+            view.setUint16(32, bytesPerSample, true);
+            view.setUint16(34, bitsPerSample, true);
+
+            // data subchunk
+            writeString(view, 36, "data");
+            view.setUint32(40, dataLength, true);
+
+            // Write samples as int16
+            var offset = 44;
+            for (var i = 0; i < numSamples; i++) {
+                var s = Math.max(-1, Math.min(1, pcm[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                offset += 2;
+            }
+
+            ctx.close();
+            callback(new Blob([buffer], { type: "audio/wav" }));
+        }, function(err) {
+            // Fallback: send original blob if decode fails
+            ctx.close();
+            callback(audioBlob);
+        });
+    };
+
+    reader.readAsArrayBuffer(audioBlob);
+}
+
+function writeString(view, offset, str) {
+    for (var i = 0; i < str.length; i++) {
+        view.setUint8(offset + i, str.charCodeAt(i));
+    }
 }
 
 // --- Reset ---
