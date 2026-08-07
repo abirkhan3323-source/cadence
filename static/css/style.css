@@ -47,6 +47,8 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 body {
     font-family: var(--font-body);
     background: var(--bg-deep);
@@ -103,12 +105,19 @@ body::after {
 
 .app {
     width: 100%;
-    max-width: 480px;
+    max-width: 720px;
     min-height: 100vh;
-    padding: 20px;
+    padding: 24px 32px;
     display: flex;
     flex-direction: column;
     position: relative;
+    margin: 0 auto;
+}
+
+@media (max-width: 500px) {
+    .app {
+        padding: 20px 16px;
+    }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1721,8 +1730,8 @@ body::after {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 20px;
-    padding: 40px 32px 32px;
-    max-width: 420px;
+    padding: 48px 40px 40px;
+    max-width: 560px;
     width: 100%;
     text-align: center;
     animation: onboardSlideIn 0.5s ease-out;
