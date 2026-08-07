@@ -3,8 +3,6 @@
    "An empty concert hall at midnight. A single warm spotlight."
    ═══════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Inter:wght@300;400;500;600;700&display=swap');
-
 :root {
     /* ── Concert Hall Palette ── */
     --bg-deep: #08080A;
@@ -231,6 +229,110 @@ body::after {
     font-family: var(--font-body);
     letter-spacing: 0.03em;
     text-transform: uppercase;
+}
+
+/* ── Persona Selector ── */
+.persona-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.persona-selector label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+}
+.persona-selector select {
+    padding: 6px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+.persona-selector select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ── Kaizen Timer ── */
+.kaizen-timer {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(74, 222, 128, 0.03);
+    border: 1px solid rgba(74, 222, 128, 0.1);
+    border-radius: var(--radius);
+}
+.kaizen-display { margin-bottom: 10px; }
+.kaizen-time {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+    font-variant-numeric: tabular-nums;
+}
+.kaizen-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.kaizen-controls {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+.kaizen-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    border-radius: 99px;
+    color: var(--success);
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease-out;
+}
+.kaizen-btn:hover {
+    background: rgba(74, 222, 128, 0.2);
+    transform: translateY(-1px);
+}
+.kaizen-btn.running {
+    background: rgba(248, 113, 113, 0.15);
+    border-color: rgba(248, 113, 113, 0.3);
+    color: var(--danger);
+}
+.kaizen-btn--reset {
+    background: transparent;
+    border-color: var(--border-subtle);
+    color: var(--text-secondary);
+}
+.kaizen-btn--reset:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+.kaizen-quote {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -493,96 +595,6 @@ body::after {
     padding: 24px 0;
 }
 
-/* ── 7-Dot Neural Ring ── */
-.neural-animation {
-    position: relative;
-    width: 180px; height: 180px;
-    margin: 0 auto 32px;
-}
-
-.neural-ring {
-    position: relative;
-    width: 100%; height: 100%;
-}
-
-.neural-dot {
-    position: absolute;
-    width: 8px; height: 8px;
-    background: var(--accent);
-    border-radius: 50%;
-    box-shadow: 0 0 10px var(--accent-glow), 0 0 20px var(--accent-glow);
-    animation: neuralPulse 2.5s ease-in-out infinite;
-}
-
-/* 7 dots in a circle */
-.neural-dot--1 { top: 50%; left: 50%; margin: -4px 0 0 70px; animation-delay: 0s; }
-.neural-dot--2 { top: 50%; left: 50%; margin: -55px 0 0 45px; animation-delay: 0.18s; }
-.neural-dot--3 { top: 50%; left: 50%; margin: -65px 0 0 -8px; animation-delay: 0.36s; }
-.neural-dot--4 { top: 50%; left: 50%; margin: -40px 0 0 -55px; animation-delay: 0.54s; }
-.neural-dot--5 { top: 50%; left: 50%; margin: 0 0 0 -60px; animation-delay: 0.72s; }
-.neural-dot--6 { top: 50%; left: 50%; margin: 30px 0 0 -45px; animation-delay: 0.90s; }
-.neural-dot--7 { top: 50%; left: 50%; margin: 40px 0 0 15px; animation-delay: 1.08s; }
-
-.neural-connector {
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 140px; height: 140px;
-    margin: -70px 0 0 -70px;
-    border-radius: 50%;
-    border: 1px solid transparent;
-    transition: border-color 0.6s ease;
-}
-
-@keyframes neuralPulse {
-    0%, 100% { transform: scale(1); opacity: 0.5; }
-    30% { transform: scale(1.6); opacity: 1; }
-}
-
-/* ── Loading Steps ── */
-.loading-steps {
-    text-align: left;
-    max-width: 300px;
-    margin: 0 auto;
-}
-
-.loading-step {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 0;
-    opacity: 0.25;
-    transition: opacity 0.5s ease;
-}
-
-.loading-step--active {
-    opacity: 1;
-}
-
-.loading-step--done {
-    opacity: 0.4;
-}
-
-.step-icon {
-    font-size: 1rem;
-    flex-shrink: 0;
-    opacity: 0.7;
-}
-
-.loading-step--active .step-icon {
-    opacity: 1;
-}
-
-.step-label {
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    font-weight: 400;
-    letter-spacing: 0.03em;
-}
-
-.loading-step--active .step-label {
-    color: var(--text-primary);
-}
-
 /* ═══════════════════════════════════════════════════════════════
    ERROR RECOVERY
    ═══════════════════════════════════════════════════════════════ */
@@ -788,42 +800,6 @@ body::after {
     font-weight: 300;
 }
 
-/* ── Julian Quote — serif italic, decorative ── */
-.quote-block {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
-    text-align: center;
-}
-
-.quote-label {
-    font-size: 0.6rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--text-secondary);
-    margin-bottom: 14px;
-    font-weight: 500;
-}
-
-.quote-ornament {
-    color: var(--accent);
-    font-size: 0.7rem;
-    margin-bottom: 10px;
-    opacity: 0.6;
-}
-
-.quote-block blockquote {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 500;
-    color: var(--accent);
-    font-size: 0.9rem;
-    line-height: 1.7;
-    padding: 0 12px;
-    border: none;
-    quotes: none;
-}
-
 /* ═══════════════════════════════════════════════════════════════
    PIANO KEY DIVIDER
    ═══════════════════════════════════════════════════════════════ */
@@ -844,93 +820,6 @@ body::after {
 /* ═══════════════════════════════════════════════════════════════
    PROGRESS SCREEN — Bento Grid
    ═══════════════════════════════════════════════════════════════ */
-
-.progress-heading {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    color: var(--text-primary);
-    text-align: center;
-}
-
-/* ── Bento Grid ── */
-.bento-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-}
-
-/* Desktop: asymmetric bento layout */
-@media (min-width: 769px) {
-    .app { max-width: 800px; }
-
-    .bento-grid {
-        grid-template-columns: 2fr 1fr;
-    }
-
-    .bento-card--streak { grid-column: 1; grid-row: 1; }
-    .bento-card--stats { grid-column: 2; grid-row: 1; }
-    .bento-card--parents { grid-column: 1 / -1; grid-row: 2; }
-    .bento-card--badges { grid-column: 1; grid-row: 3; }
-    .bento-card--heatmap { grid-column: 2; grid-row: 3; }
-    .bento-card--radar { grid-column: 1; grid-row: 4; }
-    .bento-card--export { grid-column: 2; grid-row: 4; }
-}
-
-/* ── Bento Card (individual glass cards) ── */
-.bento-card {
-    position: relative;
-    background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius);
-    padding: 24px;
-    box-shadow:
-        0 4px 24px rgba(0, 0, 0, 0.35),
-        0 0 0 1px var(--border-subtle) inset;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.bento-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
-    opacity: 0.03;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.bento-card > * { position: relative; z-index: 1; }
-
-@media (min-width: 769px) {
-    .bento-card:hover {
-        transform: translateY(-2px);
-        box-shadow:
-            0 8px 40px rgba(0, 0, 0, 0.5),
-            0 0 0 1px var(--border-subtle) inset;
-    }
-}
-
-/* ── Bento Card — Export (center vertically) ── */
-.bento-card--export {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* ── Remove nested borders (sections inside bento cards) ── */
-.bento-card .badges-section,
-.bento-card .heatmap-section,
-.bento-card .radar-container,
-.bento-card .parent-dashboard {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
-}
 
 /* ═══════════════════════════════════════════════════════════════
    STREAK — Playfair gradient text + CSS flame
@@ -1044,76 +933,6 @@ body::after {
     margin-top: 4px;
     font-weight: 400;
     letter-spacing: 0.03em;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   PARENT DASHBOARD — Unique soft glow per card
-   ═══════════════════════════════════════════════════════════════ */
-
-.parent-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-@media (min-width: 769px) {
-    .parent-cards {
-        flex-direction: row;
-    }
-}
-
-.parent-title {
-    font-family: var(--font-display);
-    font-size: 1rem;
-    margin-bottom: 4px;
-    text-align: center;
-    font-weight: 700;
-}
-.parent-subtitle {
-    font-family: var(--font-body);
-    font-size: 0.7rem;
-    color: var(--text-secondary);
-    text-align: center;
-    margin-bottom: 16px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 500;
-}
-
-.parent-card {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    padding: 18px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.parent-card:hover {
-    transform: translateY(-1px);
-}
-
-.parent-card--priming { border-left: 3px solid rgba(96, 165, 250, 0.5); }
-.parent-card--priming:hover { box-shadow: 0 0 20px rgba(96, 165, 250, 0.08); }
-
-.parent-card--narration { border-left: 3px solid rgba(167, 139, 250, 0.5); }
-.parent-card--narration:hover { box-shadow: 0 0 20px rgba(167, 139, 250, 0.08); }
-
-.parent-card--feedback { border-left: 3px solid var(--accent); }
-.parent-card--feedback:hover { box-shadow: 0 0 20px var(--accent-soft); }
-
-.parent-card-icon { font-size: 1.3rem; }
-.parent-card h4 {
-    font-family: var(--font-display);
-    font-size: 0.9rem;
-    margin: 8px 0 6px;
-    color: var(--text-primary);
-    font-weight: 500;
-}
-.parent-card p {
-    font-family: var(--font-body);
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    font-weight: 300;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1805,6 +1624,67 @@ body::after {
 .practice-plan h3 svg {
     vertical-align: middle;
     margin-right: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AUDIO RECORDING — Piano Playing
+   ═══════════════════════════════════════════════════════════════ */
+
+.btn-record-audio {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px;
+    margin: 12px auto;
+    background: rgba(96, 165, 250, 0.06);
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-out;
+}
+.btn-record-audio:hover {
+    background: rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.4);
+}
+.btn-record-audio.recording {
+    background: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.4);
+    color: var(--danger);
+    animation: audioPulseBorder 1.5s ease-in-out infinite;
+}
+.btn-record-audio svg { color: currentColor; flex-shrink: 0; }
+@keyframes audioPulseBorder {
+    0%, 100% { border-color: rgba(248, 113, 113, 0.4); }
+    50% { border-color: rgba(248, 113, 113, 0.8); }
+}
+.audio-status {
+    text-align: center;
+    padding: 8px;
+}
+.audio-status span {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+.audio-level-container {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    margin-bottom: 6px;
+    overflow: hidden;
+}
+.audio-level-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.1s ease;
 }
 
 /* ═══════════════════════════════════════════════════════════════

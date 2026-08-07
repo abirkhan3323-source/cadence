@@ -1,4 +1,6 @@
-# Cadence — Complete Handoff Document
+# Cadence — Complete Handoff
+
+> ⚠️ **STALE CODE SNAPSHOT:** The code blocks in Section 4 of this document are from an earlier build and do NOT reflect the current source code. They are kept as historical reference only. For the actual, current code, see the source files: `app.py`, `ai_client.py`, `templates/index.html`, `static/css/style.css`, `static/js/recorder.js`. Document
 
 > Paste this entire document into a fresh Claude Code session to continue building.
 > Everything is here: research, decisions, code, demo script, next steps.
@@ -31,13 +33,14 @@
 
 **Architecture (simple by design):**
 ```
-Browser (Chrome SpeechRecognition API) → transcribes voice locally (free)
-  ↓ POST /api/coach-text {transcription, context}
-Flask Server (55 lines) → AIClient
+Browser → Chrome SpeechRecognition API → transcribes voice locally (free)
+Browser → MediaRecorder API → records piano audio (free, local)
+  ↓ POST /api/coach-text {transcription, context}  OR  /api/coach-audio {transcription, context, audio}
+Flask Server (~206 lines) → AIClient + Audio Analysis (Python wave module)
   ↓
 Featherless (DeepSeek V3) > Groq (Llama 3.3, free tier) > Mock (13 categories, 39 variants)
   ↓
-Response: {transcription, coaching, provider}
+Response: {transcription, coaching, practice_plan, provider, audio_metrics?}
 ```
 
 **Tech stack:** Python Flask, HTML/CSS/JS, Chrome Web Speech API (free, local), Featherless or Groq for AI coaching
@@ -54,35 +57,43 @@ Response: {transcription, coaching, provider}
 - [x] Julian Toha language injected into every response ("the instrument is the gym", "unseen learning", "80/20 method", "Dip vs Cul-de-sac", "Skills Genome", "7-day feedback gap")
 - [x] 3-screen UI: Record → Feedback → Progress
 - [x] Dark theme, mobile-first, gold accents
+- [x] Custom SVG icon library (11 icons, zero external dependencies)
 - [x] Demo script (2-minute, timed, with backup plan)
 - [x] Architecture diagram
 - [x] Devpost README
 - [x] Dual AI backend (Featherless + Groq) — auto-detects from .env
+- [x] Audio recording — record piano playing, server-side WAV analysis (RMS, zero-crossing rate, onset detection)
+- [x] Persona Selector — Beginner/Intermediate/Advanced/Apprentice dropdown tailors AI coaching style
+- [x] Kaizen Timer — 15-min Pomodoro-style practice timer with localStorage logging
+- [x] Oclef Deep System Prompt — 4-Stage Model, Development Stack, Kaizen Philosophy
+- [x] debug=False (production safe)
+- [x] ~400 lines dead CSS removed, ~110 lines audio analysis added
+- [x] Practice log with streak tracking, heatmap, badges, localStorage persistence
 
 ### Not Yet Done
 - [ ] LIVE DEPLOYED URL (CRITICAL — judges need to click it)
 - [ ] Real AI key (Featherless workshop at 10:30am PDT, or Groq free tier at console.groq.com)
-- [ ] Demo video recording
+- [ ] Demo video recording (use DEMO_SCRIPT.md, 2 minutes)
 - [ ] Git repo initialized
 - [ ] Devpost submission filled out
-- [ ] Practice log persistence (currently mocked 22-day streak)
+- [ ] End-to-end test with real audio + coaching flow
 
 ### File Structure
 ```
 C:\Users\ABC\cadence\
-├── app.py              # Flask server, 55 lines, 3 routes
-├── ai_client.py        # AI engine, 280 lines, 13 categories, 3 providers
-├── requirements.txt    # flask, flask-cors, requests, python-dotenv
+├── app.py              # Flask server, ~206 lines, 5 routes (coach-text, coach-audio, scan-sheet, health, index)
+├── ai_client.py        # AI engine, ~400 lines, 13 categories, 3 providers, 10 coaching rules
+├── requirements.txt    # flask, flask-cors, requests, python-dotenv, gunicorn
 ├── .env.example        # FEATHERLESS_API_KEY=, GROQ_API_KEY=
 ├── README.md           # Devpost submission text
 ├── ARCHITECTURE.md     # Architecture diagram + design decisions
 ├── DEMO_SCRIPT.md      # 2-minute winning demo script
 ├── HANDOFF.md          # This file
 ├── templates/
-│   └── index.html      # 3-screen UI
+│   └── index.html      # 3-screen SPA with persona selector + kaizen timer + audio recorder
 └── static/
-    ├── css/style.css   # Dark theme
-    └── js/recorder.js  # Chrome SpeechRecognition → Flask
+    ├── css/style.css   # Dark theme, custom SVG icons, kaizen/persona/audio styles
+    └── js/recorder.js  # SpeechRecognition + MediaRecorder + Kaizen Timer + localStorage
 ```
 
 ---
@@ -729,22 +740,22 @@ btnBackProgress.addEventListener("click", function() { screenProgress.hidden = t
 
 ## 6. WHAT'S LEFT TO DO (in priority order)
 
-### CRITICAL
+### CRITICAL (blocking submission)
 1. **Get API key** — Featherless workshop at 10:30am PDT, OR sign up at console.groq.com (free, instant)
-2. **Deploy live URL** — Deploy to Railway (supports Docker + FFmpeg) or Render. The app needs a public URL judges can click.
-3. **Record demo video** — 2 minutes, screen recording with voiceover. Follow the demo script above. Record 3 takes, pick best.
+2. **Deploy live URL** — Railway with gunicorn (`pip install gunicorn && gunicorn app:app -b 0.0.0.0:$PORT`)
+3. **Record demo video** — 2 minutes, screen recording with voiceover. Follow DEMO_SCRIPT.md.
 4. **Submit on Devpost** — Before 3:30pm PDT Sunday. Fill all fields, add screenshots, link GitHub repo.
 
-### IMPORTANT
-5. **Initialize git repo** — `git init && git add . && git commit -m "Initial commit: Cadence AI Music Coach"`
+### QUICK WINS (5-10 min each)
+5. **Initialize git repo** — `git init && git add . && git commit -m "..."`
 6. **Push to GitHub** — Public repo for Devpost submission
-7. **Test on mobile** — Open the deployed URL on a phone. Voice recording must work on mobile Chrome.
-8. **Prep backup** — Screenshots of every screen in case the live demo breaks during judging
+7. **Test on mobile Chrome** — Open deployed URL on phone, verify speech recognition works
+8. **Take screenshots** — All 3 screens + loading state for Devpost gallery
 
-### NICE TO HAVE
-9. **Practice log persistence** — Save sessions to a JSON file so streaks are real
-10. **Polish UI** — Add loading animations between screens, improve error states
-11. **Groq fallback testing** — Verify the Groq API path works end-to-end
+### POST-HACKATHON
+9. YIN algorithm for real-time pitch detection (browser-side)
+10. SQLite database replacing localStorage
+11. Teacher dashboard (parent/teacher view)
 
 ---
 

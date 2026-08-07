@@ -90,6 +90,26 @@ const sheetFile = document.getElementById("sheet-file");
 const scanResult = document.getElementById("scan-result");
 const scanText = document.getElementById("scan-text");
 
+// DOM — Audio Recording
+var btnRecordAudio = document.getElementById("btn-record-audio");
+var audioStatus = document.getElementById("audio-status");
+var audioLevel = document.getElementById("audio-level");
+var mediaRecorder = null;
+var audioChunks = [];
+var audioBlob = null;
+var isRecordingAudio = false;
+var audioContext = null;
+var audioAnalyser = null;
+
+// DOM — Kaizen Timer
+var kaizenTime = document.getElementById("kaizen-time");
+var btnKaizenStart = document.getElementById("btn-kaizen-start");
+var btnKaizenReset = document.getElementById("btn-kaizen-reset");
+var kaizenSeconds = 900;
+var kaizenInterval = null;
+var isKaizenRunning = false;
+var kaizenTotalMinutes = parseInt(localStorage.getItem("cadence_kaizen_minutes") || "0", 10);
+
 // --- Speech Recognition Setup ---
 
 function createRecognition() {
@@ -237,6 +257,15 @@ if (btnExport) btnExport.addEventListener("click", downloadReport);
 if (btnScan) btnScan.addEventListener("click", function () { sheetFile.click(); });
 if (sheetFile) sheetFile.addEventListener("change", handleSheetUpload);
 
+// Audio recording button
+if (btnRecordAudio) {
+    btnRecordAudio.addEventListener("click", toggleAudioRecording);
+}
+
+// Kaizen Timer
+if (btnKaizenStart) btnKaizenStart.addEventListener("click", toggleKaizenTimer);
+if (btnKaizenReset) btnKaizenReset.addEventListener("click", resetKaizenTimer);
+
 function startRecording() {
     transcribedText = "";
 
@@ -335,7 +364,7 @@ function setStepState(stepEl, state) {
 // --- Send to Coach ---
 
 function sendToCoach() {
-    if (!transcribedText.trim()) return;
+    if (!transcribedText.trim() && !audioBlob) return;
 
     var context = document.getElementById("context").value;
 
@@ -346,13 +375,46 @@ function sendToCoach() {
     errorRecovery.hidden = true;
     startLoadingSteps();
 
-    fetch("/api/coach-text", {
+    var payload = {
+        transcription: transcribedText.trim(),
+        context: context,
+    };
+
+    // Include audio if recorded
+    if (audioBlob) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            payload.audio = e.target.result.split(",")[1];
+            payload.audio_mime = audioBlob.type;
+            doSendToCoach(payload);
+        };
+        reader.readAsDataURL(audioBlob);
+        return;
+    }
+
+    doSendToCoach(payload);
+}
+
+function doSendToCoach(payload) {
+    // Inject persona context
+    var personaLevel = "intermediate";
+    var personaSelect = document.getElementById("persona-level");
+    if (personaSelect) personaLevel = personaSelect.value;
+
+    if (personaLevel === "beginner") {
+        payload.context = "Student is a BEGINNER (Stage 1 — Learn to Read). Use gentle encouragement, fundamental framing. " + (payload.context || "");
+    } else if (personaLevel === "advanced") {
+        payload.context = "Student is ADVANCED (Stage 3 — Learn to Perform). Use rigorous critique, treat as serious performer. " + (payload.context || "");
+    } else if (personaLevel === "apprentice") {
+        payload.context = "Student is a STAGE 4 APPRENTICE (Learn to Build). Treat as a peer. Expect excellence. " + (payload.context || "");
+    }
+
+    var endpoint = payload.audio ? "/api/coach-audio" : "/api/coach-text";
+
+    fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            transcription: transcribedText.trim(),
-            context: context,
-        }),
+        body: JSON.stringify(payload),
     })
         .then(function (resp) { return resp.json(); })
         .then(function (data) {
@@ -364,7 +426,7 @@ function sendToCoach() {
             }
 
             // Populate feedback sections
-            transcriptDisplay.textContent = '"' + data.transcription + '"';
+            transcriptDisplay.textContent = '"' + (data.transcription || payload.transcription) + '"';
             coachingDisplay.textContent = data.coaching;
             planContent.textContent = data.practice_plan || "";
             rotateQuote();
@@ -623,7 +685,8 @@ var JULIAN_QUOTES = [
 function rotateQuote() {
     if (!julianQuote) return;
     var q = JULIAN_QUOTES[Math.floor(Math.random() * JULIAN_QUOTES.length)];
-    julianQuote.textContent = "“" + q + "”";
+    var p = julianQuote.querySelector('p');
+    if (p) p.textContent = '“' + q + '”';
 }
 
 // --- Voice Synthesis ---
@@ -973,6 +1036,158 @@ function seedAllDemoData() {
 // Run immediately on script load
 seedAllDemoData();
 
+// --- Kaizen Timer ---
+
+function toggleKaizenTimer() {
+    if (isKaizenRunning) {
+        pauseKaizenTimer();
+    } else {
+        startKaizenTimer();
+    }
+}
+
+function startKaizenTimer() {
+    isKaizenRunning = true;
+    if (btnKaizenStart) {
+        btnKaizenStart.innerHTML = '<svg width="14" height="14"><use href="#icon-stop"/></svg> Pause';
+        btnKaizenStart.classList.add("running");
+    }
+    kaizenInterval = setInterval(function() {
+        kaizenSeconds--;
+        updateKaizenDisplay();
+        if (kaizenSeconds <= 0) completeKaizenSession();
+    }, 1000);
+}
+
+function pauseKaizenTimer() {
+    isKaizenRunning = false;
+    clearInterval(kaizenInterval);
+    kaizenInterval = null;
+    if (btnKaizenStart) {
+        btnKaizenStart.innerHTML = '<svg width="14" height="14"><use href="#icon-flame"/></svg> Resume';
+        btnKaizenStart.classList.remove("running");
+    }
+}
+
+function resetKaizenTimer() {
+    pauseKaizenTimer();
+    kaizenSeconds = 900;
+    updateKaizenDisplay();
+    if (btnKaizenStart) {
+        btnKaizenStart.innerHTML = '<svg width="14" height="14"><use href="#icon-flame"/></svg> Start';
+        btnKaizenStart.classList.remove("running");
+    }
+}
+
+function updateKaizenDisplay() {
+    if (!kaizenTime) return;
+    var min = Math.floor(Math.max(0, kaizenSeconds) / 60);
+    var sec = Math.max(0, kaizenSeconds) % 60;
+    kaizenTime.textContent = min + ":" + String(sec).padStart(2, "0");
+}
+
+function completeKaizenSession() {
+    pauseKaizenTimer();
+    kaizenTotalMinutes += 15;
+    try { localStorage.setItem("cadence_kaizen_minutes", String(kaizenTotalMinutes)); } catch(e) {}
+    if (btnKaizenStart) {
+        btnKaizenStart.innerHTML = '<svg width="14" height="14"><use href="#icon-check"/></svg> Done!';
+        btnKaizenStart.classList.remove("running");
+    }
+    if (kaizenTime) {
+        kaizenTime.style.color = "var(--success)";
+        setTimeout(function() {
+            if (kaizenTime) kaizenTime.style.color = "var(--accent)";
+            resetKaizenTimer();
+        }, 2000);
+    }
+}
+
+// --- Audio Recording (Piano Playing) ---
+
+function toggleAudioRecording() {
+    if (isRecordingAudio) {
+        stopAudioRecording();
+    } else {
+        startAudioRecording();
+    }
+}
+
+function startAudioRecording() {
+    audioChunks = [];
+    audioBlob = null;
+    isRecordingAudio = true;
+
+    if (btnRecordAudio) {
+        btnRecordAudio.querySelector("span").textContent = "Stop Recording";
+        btnRecordAudio.classList.add("recording");
+    }
+    if (audioStatus) {
+        audioStatus.hidden = false;
+        audioStatus.querySelector("span").textContent = "Recording your playing...";
+    }
+
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(function(stream) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            var source = audioContext.createMediaStreamSource(stream);
+            audioAnalyser = audioContext.createAnalyser();
+            audioAnalyser.fftSize = 256;
+            source.connect(audioAnalyser);
+
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = function(e) {
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
+            mediaRecorder.onstop = function() {
+                audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+                stream.getTracks().forEach(function(t) { t.stop(); });
+                if (audioContext) audioContext.close();
+            };
+            mediaRecorder.start();
+            updateAudioLevel();
+        })
+        .catch(function(err) {
+            isRecordingAudio = false;
+            if (btnRecordAudio) {
+                btnRecordAudio.querySelector("span").textContent = "Record Your Playing";
+                btnRecordAudio.classList.remove("recording");
+            }
+            if (audioStatus) audioStatus.hidden = true;
+            promptText.innerHTML = '<span style="color: #e07070;">Microphone access denied. Allow mic access to record your playing.</span>';
+        });
+}
+
+function stopAudioRecording() {
+    if (!isRecordingAudio) return;
+    isRecordingAudio = false;
+
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+    }
+
+    if (btnRecordAudio) {
+        btnRecordAudio.querySelector("span").textContent = "Record Your Playing";
+        btnRecordAudio.classList.remove("recording");
+    }
+    if (audioStatus) audioStatus.hidden = true;
+    if (audioLevel) audioLevel.style.width = "0%";
+}
+
+function updateAudioLevel() {
+    if (!isRecordingAudio || !audioAnalyser) return;
+
+    var dataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+    audioAnalyser.getByteFrequencyData(dataArray);
+    var sum = 0;
+    for (var i = 0; i < dataArray.length; i++) sum += dataArray[i];
+    var avg = sum / dataArray.length;
+    var level = Math.min(100, Math.round((avg / 128) * 100));
+
+    if (audioLevel) audioLevel.style.width = level + "%";
+    if (isRecordingAudio) requestAnimationFrame(updateAudioLevel);
+}
+
 // --- Reset ---
 
 function resetToRecord() {
@@ -982,6 +1197,17 @@ function resetToRecord() {
         recognition.stop();
         recognition = null;
     }
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+    }
+    audioChunks = [];
+    audioBlob = null;
+    if (audioStatus) audioStatus.hidden = true;
+    if (btnRecordAudio) {
+        btnRecordAudio.querySelector("span").textContent = "Record Your Playing";
+        btnRecordAudio.classList.remove("recording");
+    }
+    if (isKaizenRunning) pauseKaizenTimer();
     clearInterval(recordingTimer);
     recordingTimer = null;
     if (loadingTimer) clearTimeout(loadingTimer);

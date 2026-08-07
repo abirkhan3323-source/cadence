@@ -143,6 +143,35 @@
                     <span class="stat"><svg width="14" height="14" class="stat-icon"><use href="#icon-note"/></svg> Oclef method</span>
                 </div>
 
+                <!-- Student Persona Selector -->
+                <div class="persona-selector" id="persona-selector">
+                    <label for="persona-level">I am a:</label>
+                    <select id="persona-level">
+                        <option value="beginner">Beginner (Stage 1 — Learn to Read)</option>
+                        <option value="intermediate" selected>Intermediate (Stage 2 — Learn to Practice)</option>
+                        <option value="advanced">Advanced (Stage 3 — Learn to Perform)</option>
+                        <option value="apprentice">Apprentice (Stage 4 — Learn to Build)</option>
+                    </select>
+                </div>
+
+                <!-- Kaizen Timer -->
+                <div class="kaizen-timer" id="kaizen-timer">
+                    <div class="kaizen-display">
+                        <span class="kaizen-time" id="kaizen-time">15:00</span>
+                        <span class="kaizen-label">Kaizen Timer</span>
+                    </div>
+                    <div class="kaizen-controls">
+                        <button class="kaizen-btn" id="btn-kaizen-start">
+                            <svg width="14" height="14"><use href="#icon-flame"/></svg>
+                            Start
+                        </button>
+                        <button class="kaizen-btn kaizen-btn--reset" id="btn-kaizen-reset">
+                            Reset
+                        </button>
+                    </div>
+                    <p class="kaizen-quote">"The tortoise always wins."</p>
+                </div>
+
                 <p class="prompt">
                     Tell Cadence what you practiced today.<br>
                     <span class="prompt-hint">What went well? What felt hard? What's stuck?</span>
@@ -152,6 +181,18 @@
                     <svg class="btn-record__icon" width="36" height="36"><use href="#icon-mic"/></svg>
                     <span class="btn-record__text">Tap to Record</span>
                 </button>
+
+                <!-- Audio Recording Button — piano playing -->
+                <button class="btn-record-audio" id="btn-record-audio" aria-label="Record your piano playing">
+                    <svg width="20" height="20"><use href="#icon-note"/></svg>
+                    <span>Record Your Playing</span>
+                </button>
+                <div class="audio-status" id="audio-status" hidden>
+                    <div class="audio-level-container">
+                        <div class="audio-level-bar" id="audio-level"></div>
+                    </div>
+                    <span>Recording your playing...</span>
+                </div>
 
                 <div class="divider"><span>or type your practice notes</span></div>
 
