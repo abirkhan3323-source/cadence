@@ -69,7 +69,7 @@ Voice-driven AI piano coach. Student describes their practice in their own words
 
 ### AI System
 - **System prompt:** Encodes all 7 Julian Toha Oclef coaching rules verbatim
-- **Live AI:** Groq Llama 3.3 70B (free tier, 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)
+- **Live AI:** Groq Llama 3.3 70B (free tier, key stored in Railway env vars)
 - **Demo cache:** Keyword-matched hardcoded responses for guaranteed demo reliability
 - **Mock DB:** 13 piano problem categories, 3 variants each = 39 unique responses
 - **Categories:** scales/thumb crossover, hands together, stuck/plateau, rhythm/timing, sight reading, chords, memorization, performance anxiety, wrist tension/pain, dynamics/expression, pedal, beginner welcome, teacher/lessons
