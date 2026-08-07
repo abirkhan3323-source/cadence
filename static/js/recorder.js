@@ -969,8 +969,9 @@ function handleSheetUpload(event) {
     var file = event.target.files[0];
     if (!file) return;
 
-    scanResult.hidden = false;
-    scanText.textContent = "Scanning " + file.name + "...";
+    var scanLoading = document.getElementById("scan-loading");
+    scanResult.hidden = true;
+    if (scanLoading) scanLoading.hidden = false;
 
     var reader = new FileReader();
     reader.onload = function (e) {
@@ -983,14 +984,26 @@ function handleSheetUpload(event) {
         })
             .then(function (resp) { return resp.json(); })
             .then(function (data) {
+                if (scanLoading) scanLoading.hidden = true;
+                scanResult.hidden = false;
                 if (data.error) {
-                    scanText.textContent = "Could not analyze. " + data.error;
+                    scanText.innerHTML = '<span style=\"color: var(--danger);\">' + data.error + '</span>';
                 } else {
-                    scanText.textContent = data.analysis;
+                    // Format structured analysis with line breaks
+                    var formatted = data.analysis
+                        .replace(/KEY:/gi, '<strong style=\"color: var(--gold-bright);\">KEY:</strong>')
+                        .replace(/WHAT I SEE:/gi, '<br><br><strong style=\"color: var(--gold-bright);\">WHAT I SEE:</strong>')
+                        .replace(/HARDEST SECTION:/gi, '<br><br><strong style=\"color: var(--danger);\">HARDEST SECTION:</strong>')
+                        .replace(/PRACTICE STRATEGY:/gi, '<br><br><strong style=\"color: var(--success);\">PRACTICE STRATEGY:</strong>')
+                        .replace(/\\n\\n/g, '<br><br>')
+                        .replace(/\\n/g, '<br>');
+                    scanText.innerHTML = formatted;
                 }
             })
             .catch(function () {
-                scanText.textContent = "Could not reach the server. Is Cadence running on port 5000?";
+                if (scanLoading) scanLoading.hidden = true;
+                scanResult.hidden = false;
+                scanText.innerHTML = '<span style=\"color: var(--danger);\">Could not reach the server. Is Cadence running?</span>';
             });
     };
     reader.readAsDataURL(file);

@@ -364,13 +364,22 @@
                     Download Report
                 </button>
 
-                <!-- Sheet music scan (stretch feature) -->
+                <!-- Sheet music scan -->
                 <div class="scan-section" id="scan-section">
-                    <input type="file" id="sheet-file" accept="image/*,.pdf" hidden>
+                    <h3>Sheet Music Scanner</h3>
+                    <p class="scan-hint">Take a photo of your sheet music. Cadence will identify the piece, key signature, hardest section, and give a practice strategy.</p>
+                    <input type="file" id="sheet-file" accept="image/*" hidden>
                     <button class="btn-scan" id="btn-scan">
-                        <svg width="16" height="16"><use href="#icon-note"/></svg>
+                        <svg width="18" height="18"><use href="#icon-note"/></svg>
                         Scan Sheet Music
                     </button>
+                    <div class="scan-loading" id="scan-loading" hidden>
+                        <div class="neural-animation">
+                            <div class="neural-bar"></div><div class="neural-bar"></div><div class="neural-bar"></div>
+                            <div class="neural-bar"></div><div class="neural-bar"></div>
+                        </div>
+                        <span>Analyzing your sheet music...</span>
+                    </div>
                     <div class="scan-result" id="scan-result" hidden>
                         <p id="scan-text"></p>
                     </div>
