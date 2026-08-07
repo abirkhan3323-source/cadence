@@ -1820,3 +1820,103 @@ body::after {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ONBOARDING — First-Visit Overlay
+   ═══════════════════════════════════════════════════════════════ */
+
+.onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 4, 6, 0.92);
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.onboarding-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 32px 32px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    animation: onboardSlideIn 0.5s ease-out;
+}
+
+@keyframes onboardSlideIn {
+    from { opacity: 0; transform: translateY(24px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.onboarding-step {
+    margin-bottom: 28px;
+}
+
+.onboarding-icon {
+    width: 72px; height: 72px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+}
+
+.onboarding-step h3 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--text);
+    margin: 0 0 6px;
+}
+
+.onboarding-step p {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.onboarding-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 32px;
+    background: var(--accent);
+    color: var(--bg-deep);
+    border: none;
+    border-radius: 99px;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.onboarding-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 32px rgba(212, 168, 83, 0.3);
+}
+
+.onboarding-skip {
+    display: block;
+    margin: 12px auto 0;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 8px 16px;
+}
+
+.onboarding-skip:hover {
+    color: var(--text);
+}

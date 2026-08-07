@@ -102,6 +102,38 @@
             <p class="tagline">Your daily AI piano coach. No sheet music needed.</p>
         </header>
 
+        <!-- ONBOARDING OVERLAY (first visit only) -->
+        <div class="onboarding-overlay" id="onboarding-overlay" hidden>
+            <div class="onboarding-card">
+                <div class="onboarding-step" id="onboard-step-1">
+                    <div class="onboarding-icon">
+                        <svg width="40" height="40"><use href="#icon-mic"/></svg>
+                    </div>
+                    <h3>1. Describe Your Practice</h3>
+                    <p>Tell Cadence what you practiced. What went well? What felt hard? Just talk naturally — like telling a teacher.</p>
+                </div>
+                <div class="onboarding-step" id="onboard-step-2">
+                    <div class="onboarding-icon">
+                        <svg width="40" height="40"><use href="#icon-sparkle"/></svg>
+                    </div>
+                    <h3>2. Get AI Coaching</h3>
+                    <p>Cadence uses the Oclef method — the same pedagogy behind America's largest online piano school. 80/20 rule: one focused fix, not ten vague tips.</p>
+                </div>
+                <div class="onboarding-step" id="onboard-step-3">
+                    <div class="onboarding-icon">
+                        <svg width="40" height="40"><use href="#icon-flame"/></svg>
+                    </div>
+                    <h3>3. Build Your Streak</h3>
+                    <p>Daily feedback closes the 7-day gap that causes 83% of students to quit. Come back tomorrow. Watch your streak grow.</p>
+                </div>
+                <button class="onboarding-cta" id="btn-onboard-start">
+                    <svg width="18" height="18"><use href="#icon-mic"/></svg>
+                    Start Your First Session
+                </button>
+                <button class="onboarding-skip" id="btn-onboard-skip">Skip for now</button>
+            </div>
+        </div>
+
         <!-- SCREEN 1: RECORD -->
         <main class="screen screen--record" id="screen-record">
             <div class="card">

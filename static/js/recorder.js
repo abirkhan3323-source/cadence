@@ -12,6 +12,29 @@ let recordingTimer = null;
 let transcribedText = "";
 let loadingTimer = null;
 
+// --- Onboarding ---
+
+(function initOnboarding() {
+    var overlay = document.getElementById("onboarding-overlay");
+    var btnStart = document.getElementById("btn-onboard-start");
+    var btnSkip = document.getElementById("btn-onboard-skip");
+
+    if (!overlay) return;
+
+    // Show on first visit only
+    if (!localStorage.getItem("cadence_onboarded")) {
+        overlay.hidden = false;
+    }
+
+    function dismiss() {
+        overlay.hidden = true;
+        localStorage.setItem("cadence_onboarded", "1");
+    }
+
+    if (btnStart) btnStart.addEventListener("click", dismiss);
+    if (btnSkip) btnSkip.addEventListener("click", dismiss);
+})();
+
 // DOM — Record screen
 const screenRecord = document.getElementById("screen-record");
 const screenFeedback = document.getElementById("screen-feedback");
