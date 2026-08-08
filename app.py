@@ -103,8 +103,8 @@ def coach_audio():
     if audio_b64:
         try:
             audio_metrics = _analyze_audio(audio_b64, audio_mime)
-        except Exception:
-            audio_metrics = {"error": "Audio analysis failed, using text only"}
+        except (ValueError, OSError, RuntimeError) as e:
+            audio_metrics = {"error": f"Audio analysis failed ({type(e).__name__}), using text only"}
 
     enriched_context = context
     if audio_metrics and audio_metrics.get("success"):
@@ -167,8 +167,8 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
     raw = base64.b64decode(b64_data)
     metrics: dict = {"format": mime_type, "success": False}
 
-    samples = _decode_wav(raw)
-    if samples is None:
+    decoded = _decode_wav(raw)
+    if decoded is None:
         metrics.update({
             "duration_seconds": round(len(raw) / 16000, 1),
             "note": "Audio received but could not decode to WAV. Try recording again.",
@@ -178,12 +178,12 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
         })
         return metrics
 
-    duration = len(samples) / 44100
+    samples, sr = decoded
+    duration = len(samples) / sr
     metrics["duration_seconds"] = round(duration, 1)
     metrics["success"] = True
 
     # ── FFT-based note detection ──
-    sr = 44100
     window_size = 4096
     hop_size = window_size // 2
     note_names = _note_names()
@@ -224,7 +224,7 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
             continue
 
         # ── Harmonic structure check: is this a piano note or noise/voice? ──
-        if not _is_piano_like(fft, freqs, peak_freq):
+        if not _is_piano_like(fft, freqs, peak_freq, sr):
             continue  # voice hum, tap, or broadband noise — not a piano note
 
         # Map frequency to note
@@ -304,8 +304,8 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
     return metrics
 
 
-def _decode_wav(raw: bytes):
-    """Decode WAV bytes to int16 sample list. Returns None on failure."""
+def _decode_wav(raw: bytes) -> tuple | None:
+    """Decode WAV bytes to (samples, sample_rate). Returns None on failure."""
     import io
     import struct
     import wave
@@ -313,11 +313,11 @@ def _decode_wav(raw: bytes):
     try:
         with wave.open(io.BytesIO(raw), 'rb') as wf:
             n_frames = wf.getnframes()
-            framerate = wf.getframerate()
+            sample_rate = wf.getframerate()
             sample_width = wf.getsampwidth()
             n_channels = wf.getnchannels()
 
-            frames = wf.readframes(min(n_frames, framerate * 30))
+            frames = wf.readframes(min(n_frames, sample_rate * 30))
 
             if sample_width == 2:
                 fmt = f"<{len(frames)//2}h"
@@ -334,8 +334,8 @@ def _decode_wav(raw: bytes):
                     mono.append(raw_samples[i])
                 raw_samples = mono
 
-            return list(raw_samples)
-    except Exception:
+            return (list(raw_samples), sample_rate)
+    except (struct.error, wave.Error, EOFError, OSError, ValueError):
         return None
 
 
@@ -344,7 +344,8 @@ def _note_names() -> list:
     return ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
 
-def _is_piano_like(fft_magnitudes: np.ndarray, freqs: np.ndarray, fundamental: float) -> bool:
+def _is_piano_like(fft_magnitudes: np.ndarray, freqs: np.ndarray, fundamental: float,
+                   sr: int = 44100) -> bool:
     """
     Check whether a detected peak has piano-like harmonic structure.
 
@@ -357,7 +358,6 @@ def _is_piano_like(fft_magnitudes: np.ndarray, freqs: np.ndarray, fundamental: f
     """
     # Collect energy at harmonic positions (1f through 5f)
     harmonic_energies = []
-    sr = 44100
     nyquist = sr / 2
 
     for h in range(1, 6):

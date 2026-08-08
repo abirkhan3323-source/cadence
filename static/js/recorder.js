@@ -927,11 +927,14 @@ function downloadReport() {
         var badges = getUnlockedBadges().length;
         var lastCoaching = coachingDisplay.textContent || "No coaching feedback yet.";
 
+        var personaSelect = document.getElementById("persona-level");
+        var studentName = personaSelect ? personaSelect.options[personaSelect.selectedIndex].text.split(" (")[0] : "Student";
+
         var today = new Date().toISOString().split("T")[0];
         var report =
             "Cadence Practice Report\n" +
             "=======================\n" +
-            "Student: Maria\n" +
+            "Student: " + studentName + "\n" +
             "Date: " + today + "\n" +
             "\n" +
             "--- Stats ---\n" +
