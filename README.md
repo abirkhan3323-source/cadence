@@ -12,14 +12,16 @@
   <br/>
   <img src="https://img.shields.io/badge/Python-3.12-blue?logo=python" alt="Python 3.12" />
   <img src="https://img.shields.io/badge/Flask-3.0-green?logo=flask" alt="Flask" />
-  <img src="https://img.shields.io/badge/AI-Groq%20%7C%20Featherless-purple?logo=openai" alt="AI" />
+  <img src="https://img.shields.io/badge/AI-Featherless%20%7C%20Groq-purple?logo=openai" alt="AI" />
+  <img src="https://img.shields.io/badge/Bonus-Featherless%20DeepSeek%20V3-gold?logo=featherless" alt="Featherless Bonus" />
   <img src="https://img.shields.io/badge/DSP-NumPy%20FFT-orange?logo=numpy" alt="DSP" />
   <img src="https://img.shields.io/badge/Deploy-Railway-8B2BE2?logo=railway" alt="Railway" />
 </p>
 
 <br/>
 
-> **Live Demo:** [https://web-production-fb735.up.railway.app](https://web-production-fb735.up.railway.app)
+> **Live Demo:** [https://web-production-fb735.up.railway.app](https://web-production-fb735.up.railway.app)  
+> 🪶 **Powered by Featherless AI (DeepSeek V3)** — primary AI coach, integrated for Iris Hacks IV bonus points
 
 ---
 
@@ -175,7 +177,8 @@ Built solo in 24 hours for Iris Hacks IV (August 2026).
 - **Actually hears notes** — not just generic audio metrics. FFT pitch detection identifies specific wrong notes
 - **Won't lie to you** — harmonic structure analysis distinguishes piano from voice/taps/noise. No fabricated feedback on silence
 - **Pedagogy-first** — 11-rule coaching system prompt based on Julian Toha's Oclef method. Three sentences max. One thing to fix. Every time
-- **Never breaks** — 3-tier AI fallback chain. The app always responds, even without API keys
+- **Never breaks** — 4-tier AI fallback: Featherless (DeepSeek V3) → Groq (Llama 3.3 70B) → Demo Cache → Mock. Always responds
+- 🪶 **Featherless Bonus** — Featherless AI is the PRIMARY coach. Every response routes through Featherless first. Integrated for Iris Hacks IV bonus points
 
 ---
 
