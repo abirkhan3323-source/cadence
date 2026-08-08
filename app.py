@@ -223,6 +223,10 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
         if peak_mag < 15:
             continue
 
+        # ── Harmonic structure check: is this a piano note or noise/voice? ──
+        if not _is_piano_like(fft, freqs, peak_freq):
+            continue  # voice hum, tap, or broadband noise — not a piano note
+
         # Map frequency to note
         midi = 69 + 12 * np.log2(peak_freq / 440.0)
         midi_note = int(round(midi))
@@ -279,10 +283,10 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
     signal_ratio = active_windows / max(total_windows, 1)
     if signal_ratio < 0.05:
         quality = "silence"       # effectively no playing detected
-    elif signal_ratio < 0.15:
+    elif signal_ratio < 0.10:
         quality = "poor"          # very little signal — likely noise
-    elif len(played_sequence) < 3:
-        quality = "poor"          # some signal but too few notes for meaningful analysis
+    elif len(played_sequence) == 0:
+        quality = "poor"          # signal present but no piano-like notes found
     else:
         quality = "good"
 
@@ -338,6 +342,61 @@ def _decode_wav(raw: bytes):
 def _note_names() -> list:
     """Return list of 12 note names starting from C."""
     return ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+
+
+def _is_piano_like(fft_magnitudes: np.ndarray, freqs: np.ndarray, fundamental: float) -> bool:
+    """
+    Check whether a detected peak has piano-like harmonic structure.
+
+    A real piano note has energy distributed across multiple harmonics
+    (2f, 3f, 4f, 5f) with characteristic decay. Voice/humming has energy
+    concentrated in the fundamental (pure tone). Taps/clicks have broadband
+    noise with no clear harmonic series.
+
+    Returns True if the spectrum looks like a struck string, not a voice or noise.
+    """
+    # Collect energy at harmonic positions (1f through 5f)
+    harmonic_energies = []
+    sr = 44100
+    nyquist = sr / 2
+
+    for h in range(1, 6):
+        target = fundamental * h
+        if target >= nyquist:
+            break
+        # Find bins within ±3.5% of harmonic target (accounts for inharmonicity)
+        mask = (freqs >= target * 0.965) & (freqs <= target * 1.035)
+        if not np.any(mask):
+            break
+        harmonic_energies.append(float(np.max(fft_magnitudes[mask])))
+
+    # Need at least 3 detectable harmonics for a piano-like sound
+    if len(harmonic_energies) < 3:
+        return False
+
+    total_harmonic = sum(harmonic_energies)
+
+    # Criterion 1: fundamental shouldn't dominate (>75% = too pure, likely voice/whistle)
+    fundamental_ratio = harmonic_energies[0] / total_harmonic if total_harmonic > 0 else 1.0
+    if fundamental_ratio > 0.75:
+        return False
+
+    # Criterion 2: energy should decay across harmonics (piano characteristic)
+    # Check that h2 <= h1 * 0.9 (second harmonic ≤ 90% of fundamental)
+    if len(harmonic_energies) >= 2:
+        if harmonic_energies[1] > harmonic_energies[0] * 0.95:
+            return False  # second harmonic stronger than fundamental — not piano
+
+    # Criterion 3: check harmonic energy is a meaningful fraction of total spectrum
+    # Get total energy across piano range (27.5Hz - 4200Hz)
+    piano_mask = (freqs >= 27.5) & (freqs <= 4200)
+    total_spectral = float(np.sum(fft_magnitudes[piano_mask] ** 2))
+    harmonic_power = sum(e ** 2 for e in harmonic_energies)
+
+    if total_spectral > 0 and harmonic_power / total_spectral < 0.15:
+        return False  # harmonic energy is drowned in noise — likely percussive/ambient
+
+    return True
 
 
 if __name__ == "__main__":
