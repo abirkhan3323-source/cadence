@@ -109,21 +109,38 @@ def coach_audio():
     enriched_context = context
     if audio_metrics and audio_metrics.get("success"):
         m = audio_metrics
-        notes = ", ".join(m.get("detected_notes", [])[:15])
-        enriched_context += (
-            f"\n\n[🎹 LIVE AUDIO ANALYSIS — You just HEARD the student play:]"
-            f"\n- Notes detected: {notes}"
-            f"\n- Total notes: {m.get('note_count', 0)}"
-            f"\n- Tempo: ~{m.get('tempo_bpm', '?')} BPM"
-            f"\n- Hesitations detected: {m.get('hesitation_count', 0)}"
-            f"\n- Off-pitch notes (30+ cents): {m.get('off_pitch_notes', 0)}"
-            f"\n- Duration: {m.get('duration_seconds', 0)}s"
-            f"\n- Musical summary: {m.get('musical_summary', '')}"
-            f"\n\nIMPORTANT: Reference these specific notes in your coaching. "
-            f"If there are hesitations or off-pitch notes, point them out specifically. "
-            f"Tell the student exactly WHICH notes need work and what to practice next."
-            f"\nYou HEARD them play — respond as if you were sitting next to them at the piano."
-        )
+        quality = m.get("signal_quality", "good")
+
+        if quality in ("silence", "poor"):
+            # ── NO MEANINGFUL MUSIC DETECTED ──
+            enriched_context += (
+                f"\n\n[🎹 AUDIO RECEIVED — BUT NO MEANINGFUL PIANO PLAYING WAS DETECTED]"
+                f"\n- Signal quality: {quality.upper()}"
+                f"\n- Notes detected: {m.get('note_count', 0)} (likely noise artifacts)"
+                f"\n- Duration: {m.get('duration_seconds', 0)}s"
+                f"\n\n⚠️ CRITICAL INSTRUCTION: You did NOT hear any real piano playing. "
+                f"The student may have recorded silence, background noise, or non-piano sounds. "
+                f"DO NOT fabricate feedback about notes, mistakes, rhythm, or technique — "
+                f"there is no musical data to analyze. "
+                f"Tell the student honestly that you couldn't hear any piano playing, "
+                f"and ask them to record again while playing something on the piano."
+            )
+        else:
+            notes = ", ".join(m.get("detected_notes", [])[:15])
+            enriched_context += (
+                f"\n\n[🎹 LIVE AUDIO ANALYSIS — You just HEARD the student play:]"
+                f"\n- Notes detected: {notes}"
+                f"\n- Total notes: {m.get('note_count', 0)}"
+                f"\n- Tempo: ~{m.get('tempo_bpm', '?')} BPM"
+                f"\n- Hesitations detected: {m.get('hesitation_count', 0)}"
+                f"\n- Off-pitch notes (30+ cents): {m.get('off_pitch_notes', 0)}"
+                f"\n- Duration: {m.get('duration_seconds', 0)}s"
+                f"\n- Musical summary: {m.get('musical_summary', '')}"
+                f"\n\nIMPORTANT: Reference these specific notes in your coaching. "
+                f"If there are hesitations or off-pitch notes, point them out specifically. "
+                f"Tell the student exactly WHICH notes need work and what to practice next."
+                f"\nYou HEARD them play — respond as if you were sitting next to them at the piano."
+            )
     elif audio_metrics and audio_metrics.get("error"):
         enriched_context += f"\n[Audio was recorded but analysis failed: {audio_metrics['error']}]"
 
@@ -174,14 +191,21 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
     detected_notes = []
     onset_times = []
     prev_freq = 0
-    silence_threshold = 0.02
+    silence_threshold = 0.03  # normalized: room noise ~0.001-0.01, quiet playing ~0.03+
+
+    # ── Overall signal check: if nearly all windows are silent, flag it ──
+    total_windows = 0
+    active_windows = 0
 
     for start in range(0, len(samples) - window_size, hop_size):
-        window = np.array(samples[start:start + window_size], dtype=np.float32)
+        window = np.array(samples[start:start + window_size], dtype=np.float32) / 32768.0
         rms = float(np.sqrt(np.mean(window ** 2)))
+        total_windows += 1
 
         if rms < silence_threshold:
             continue  # silence
+
+        active_windows += 1
 
         # Hann window + FFT
         hann = 0.5 * (1 - np.cos(2 * np.pi * np.arange(window_size) / (window_size - 1)))
@@ -196,7 +220,7 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
         peak_freq = float(freqs[mask][peak_idx])
         peak_mag = float(fft[mask][peak_idx])
 
-        if peak_mag < 5:
+        if peak_mag < 15:
             continue
 
         # Map frequency to note
@@ -251,12 +275,24 @@ def _analyze_audio(b64_data: str, mime_type: str = "audio/webm") -> dict:
     if len(played_sequence) > 12:
         note_list += f" ... ({len(played_sequence)} notes total)"
 
+    # ── Signal quality assessment ──
+    signal_ratio = active_windows / max(total_windows, 1)
+    if signal_ratio < 0.05:
+        quality = "silence"       # effectively no playing detected
+    elif signal_ratio < 0.15:
+        quality = "poor"          # very little signal — likely noise
+    elif len(played_sequence) < 3:
+        quality = "poor"          # some signal but too few notes for meaningful analysis
+    else:
+        quality = "good"
+
     metrics.update({
         "detected_notes": played_sequence,
         "note_count": len(played_sequence),
         "tempo_bpm": tempo_bpm,
         "hesitation_count": hesitations,
         "off_pitch_notes": len(off_notes),
+        "signal_quality": quality,
         "velocity_range": f"{min(n['velocity'] for n in detected_notes) if detected_notes else 0}-{max(n['velocity'] for n in detected_notes) if detected_notes else 0}%",
         "musical_summary": f"Detected {len(played_sequence)} notes: {note_list}. Tempo: ~{tempo_bpm} BPM. Hesitations: {hesitations}. Off-pitch notes: {len(off_notes)}.",
     })

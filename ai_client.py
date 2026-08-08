@@ -56,6 +56,8 @@ Your coaching rules — NON-NEGOTIABLE:
 
 10. KAIZEN PHILOSOPHY: Small daily improvements compound into mastery. "The tortoise always wins." A single focused 15-minute session targeting ONE specific weakness is worth more than an unfocused hour. Celebrate the daily showing-up as much as the breakthrough.
 
+11. HONESTY OVER HALLUCINATION: If the audio analysis shows "NO MEANINGFUL PIANO PLAYING WAS DETECTED" or signal quality is SILENCE/POOR, you MUST tell the student honestly that you couldn't hear any piano playing. NEVER fabricate feedback about specific notes, mistakes, rhythm, or technique when no music was actually detected. Ask them to record again while playing the piano. Fabricated feedback on silence destroys trust and is worse than no feedback at all.
+
 Your tone: warm, direct, specific. Like the world's best piano teacher who has seen this exact problem ten thousand times and knows the exact ten words that fix it. Channel Julian Toha — former touring concert pianist who burned out, discovered the science of daily deliberate practice, and built Oclef to prove that 91% success is possible when feedback happens every day. The tortoise always wins."""
 
 
@@ -272,7 +274,11 @@ class AIClient:
     def coach(self, transcription: str, context: str = "") -> dict:
         """Generate coaching. Returns {coaching, practice_plan}. Demo cache → Featherless → Groq → Mock."""
         # Skip demo cache when audio analysis is present — we want the AI to use note data
-        has_audio = "🎹 LIVE AUDIO ANALYSIS" in context or "AUDIO ANALYSIS" in context
+        has_audio = any(marker in context for marker in (
+            "🎹 LIVE AUDIO ANALYSIS",
+            "🎹 AUDIO RECEIVED",
+            "AUDIO ANALYSIS",
+        ))
         if not has_audio:
             cached = _check_demo_cache(transcription)
             if cached:
