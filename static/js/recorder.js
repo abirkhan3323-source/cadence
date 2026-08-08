@@ -431,6 +431,7 @@ function doSendToCoach(payload) {
             transcriptDisplay.textContent = '"' + (data.transcription || payload.transcription) + '"';
             coachingDisplay.textContent = data.coaching;
             planContent.textContent = data.practice_plan || "";
+            updateProviderBadge(data.provider);
             rotateQuote();
 
             // Update progress
@@ -689,6 +690,23 @@ function rotateQuote() {
     var q = JULIAN_QUOTES[Math.floor(Math.random() * JULIAN_QUOTES.length)];
     var p = julianQuote.querySelector('p');
     if (p) p.textContent = '“' + q + '”';
+}
+
+// --- Provider Badge ---
+
+function updateProviderBadge(provider) {
+    var badge = document.getElementById("provider-badge");
+    var nameEl = document.getElementById("provider-name");
+    if (!badge || !nameEl) return;
+    badge.hidden = false;
+    if (provider && provider.indexOf("featherless") !== -1) {
+        nameEl.textContent = "Featherless AI (DeepSeek V3)";
+        badge.style.borderColor = "rgba(200, 168, 78, 0.3)";
+    } else if (provider === "groq") {
+        nameEl.textContent = "Groq (Llama 3.3 70B)";
+    } else {
+        nameEl.textContent = "Cadence Demo Cache";
+    }
 }
 
 // --- Voice Synthesis ---
