@@ -146,7 +146,7 @@ Enriched context → Groq Llama 3.3 70B → Oclef coaching
 |-------|-----------|
 | **Backend** | Python 3.12 · Flask 3.0 · Gunicorn |
 | **Audio DSP** | NumPy FFT · Hann windowing · MIDI frequency mapping |
-| **AI** | Groq (Llama 3.3 70B text, Llama 3.2 90B Vision) · Featherless (DeepSeek V3) |
+| **AI** | Featherless (DeepSeek V3) · Groq (Llama 3.3 70B text, Llama 3.2 90B Vision) |
 | **Frontend** | Vanilla HTML/CSS/JS · Web Speech API · MediaRecorder API · AudioContext |
 | **Deployment** | Railway · GitHub |
 | **Browser APIs** | SpeechRecognition · AudioContext.decodeAudioData · localStorage |
@@ -171,7 +171,7 @@ python app.py
 
 ## 🏆 Iris Hacks IV
 
-Built solo in 24 hours for Iris Hacks IV (August 2026).
+Built solo in 48 hours for Iris Hacks IV (August 2026).
 
 **What makes it different:**
 - **Actually hears notes** — not just generic audio metrics. FFT pitch detection identifies specific wrong notes
