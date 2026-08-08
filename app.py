@@ -6,7 +6,7 @@ AI coach responds with personalized, Oclef-method feedback.
 Priority: Featherless API > Groq (free tier) > Mock (keyword-match)
 """
 
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 from ai_client import get_client
 import numpy as np
@@ -20,6 +20,12 @@ _client = get_client()
 @app.route("/")
 def index() -> str:
     return render_template("index.html")
+
+
+@app.route("/favicon.ico")
+@app.route("/favicon.png")
+def favicon():
+    return send_from_directory("static", "favicon.png", mimetype="image/png")
 
 
 @app.route("/api/coach-text", methods=["POST"])

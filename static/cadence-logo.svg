@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1a1a22"/>
+      <stop offset="100%" stop-color="#0a0a0c"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e8c854" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#e8c854" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e8c854"/>
+      <stop offset="50%" stop-color="#c8a84e"/>
+      <stop offset="100%" stop-color="#a8882e"/>
+    </linearGradient>
+    <linearGradient id="ivory" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5f1e8"/>
+      <stop offset="100%" stop-color="#d4cfc4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="400" rx="24" fill="url(#bg)"/>
+
+  <!-- Spotlight glow -->
+  <ellipse cx="200" cy="160" rx="180" ry="160" fill="url(#glow)"/>
+
+  <!-- Piano keys — white keys -->
+  <rect x="70" y="160" width="35" height="140" rx="3" fill="url(#ivory)" stroke="#c8a84e" stroke-width="1"/>
+  <rect x="108" y="160" width="35" height="140" rx="3" fill="url(#ivory)" stroke="#c8a84e" stroke-width="1"/>
+  <rect x="146" y="160" width="35" height="140" rx="3" fill="url(#ivory)" stroke="#c8a84e" stroke-width="1"/>
+  <rect x="184" y="160" width="35" height="140" rx="3" fill="url(#ivory)" stroke="#c8a84e" stroke-width="1"/>
+  <rect x="222" y="160" width="35" height="140" rx="3" fill="url(#ivory)" stroke="#c8a84e" stroke-width="1"/>
+  <rect x="260" y="160" width="35" height="140" rx="3" fill="url(#ivory)" stroke="#c8a84e" stroke-width="1"/>
+  <rect x="298" y="160" width="35" height="140" rx="3" fill="url(#ivory)" stroke="#c8a84e" stroke-width="1"/>
+
+  <!-- Piano keys — black keys -->
+  <rect x="93" y="160" width="24" height="88" rx="2" fill="#0a0a0c" stroke="#c8a84e" stroke-width="0.5"/>
+  <rect x="131" y="160" width="24" height="88" rx="2" fill="#0a0a0c" stroke="#c8a84e" stroke-width="0.5"/>
+  <rect x="207" y="160" width="24" height="88" rx="2" fill="#0a0a0c" stroke="#c8a84e" stroke-width="0.5"/>
+  <rect x="245" y="160" width="24" height="88" rx="2" fill="#0a0a0c" stroke="#c8a84e" stroke-width="0.5"/>
+  <rect x="283" y="160" width="24" height="88" rx="2" fill="#0a0a0c" stroke="#c8a84e" stroke-width="0.5"/>
+
+  <!-- Sparkle notes floating above -->
+  <g opacity="0.6">
+    <circle cx="120" cy="110" r="3" fill="#e8c854">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="260" cy="90" r="2.5" fill="#e8c854">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="320" cy="120" r="2" fill="#e8c854">
+      <animate attributeName="opacity" values="0.5;1;0.5" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="90" cy="95" r="2" fill="#f5f1e8">
+      <animate attributeName="opacity" values="1;0.2;1" dur="3.5s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Music note icon -->
+  <g transform="translate(200, 105)" stroke="url(#gold)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="-18" cy="8" r="6" fill="url(#gold)"/>
+    <circle cx="18" cy="0" r="5"/>
+    <line x1="-12" y1="8" x2="-12" y2="-20"/>
+    <line x1="18" y1="-5" x2="18" y2="-22"/>
+    <line x1="-12" y1="-15" x2="18" y2="-22" stroke-width="1.5"/>
+  </g>
+
+  <!-- Brand text -->
+  <text x="200" y="345" text-anchor="middle" font-family="Georgia, 'Playfair Display', serif" font-size="36" font-weight="700" fill="url(#gold)" letter-spacing="3">Cadence</text>
+  <text x="200" y="372" text-anchor="middle" font-family="Arial, 'Inter', sans-serif" font-size="11" fill="#999" letter-spacing="4">AI PIANO COACH</text>
+</svg>

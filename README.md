@@ -1,7 +1,5 @@
 <h1 align="center">
-  <img src="https://raw.githubusercontent.com/abirkhan3323-source/cadence/master/static/favicon.ico" width="48" alt="Cadence logo" />
-  <br/>
-  🎹 Cadence — AI Piano Coach
+  <img src="https://raw.githubusercontent.com/abirkhan3323-source/cadence/master/static/cadence-logo.svg" width="300" alt="Cadence — AI Piano Coach" />
 </h1>
 
 <p align="center">
