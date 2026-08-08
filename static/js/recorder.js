@@ -219,7 +219,20 @@ function createRecognition() {
 
 // --- Recording Controls ---
 
-btnRecord.addEventListener("click", startRecording);
+btnRecord.addEventListener("click", function() {
+    // If text is typed, send it directly — no voice needed
+    var text = typeDirect ? typeDirect.value.trim() : "";
+    if (text) {
+        transcribedText = text;
+        typeDirect.value = "";
+        document.getElementById("context").value = "";
+        document.getElementById("type-input-block").hidden = true;
+        sendToCoach();
+        return;
+    }
+    // Otherwise start voice recording
+    startRecording();
+});
 btnStop.addEventListener("click", stopRecording);
 btnSend.addEventListener("click", sendToCoach);
 btnAgain.addEventListener("click", resetToRecord);
@@ -236,18 +249,21 @@ btnSendType.addEventListener("click", sendTypedToCoach);
 
 // Direct type input on main record screen
 var typeDirect = document.getElementById("type-direct");
-var btnSendDirect = document.getElementById("btn-send-type-direct");
-if (btnSendDirect) {
-    btnSendDirect.addEventListener("click", function () {
-        transcribedText = typeDirect.value.trim();
-        if (!transcribedText) {
-            promptText.innerHTML = '<span style="color: #e07070;">Please describe your practice first — type or speak above.</span>';
-            return;
+
+// Update button label when text is typed
+if (typeDirect) {
+    typeDirect.addEventListener("input", function() {
+        var hasText = typeDirect.value.trim().length > 0;
+        var btnText = document.querySelector(".btn-record__text");
+        var btnIcon = document.querySelector(".btn-record__icon");
+        if (btnText) {
+            btnText.textContent = hasText ? "Send to Coach" : "Tap to Record";
         }
-        typeDirect.value = "";
-        document.getElementById("context").value = "";
-        document.getElementById("type-input-block").hidden = true;
-        sendToCoach();
+        if (btnIcon) {
+            btnIcon.innerHTML = hasText
+                ? '<use href="#icon-send"/>'
+                : '<use href="#icon-mic"/>';
+        }
     });
 }
 
