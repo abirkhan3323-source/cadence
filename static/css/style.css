@@ -106,7 +106,94 @@ body::before {
 }
 
 @media (max-width: 500px) {
-    .app { padding: 16px 14px 12px; }
+    .app { padding: 12px 10px 10px; }
+
+    /* Header */
+    .logo { font-size: 1.6rem; }
+    .logo-icon { width: 24px; height: 24px; }
+    .tagline { font-size: 0.75rem; padding: 0 8px; }
+
+    /* Cards */
+    .card { padding: 16px 14px; }
+
+    /* Stat banner */
+    .stat-banner { gap: 4px; }
+    .stat { font-size: 0.65rem; padding: 4px 8px; }
+
+    /* Persona selector — stack vertically */
+    .persona-selector { flex-direction: column; align-items: stretch; gap: 6px; }
+    .persona-selector label { text-align: center; }
+    .persona-selector select { width: 100%; font-size: 0.8rem; }
+
+    /* Kaizen timer */
+    .kaizen-timer { flex-direction: column; gap: 8px; text-align: center; }
+    .kaizen-controls { justify-content: center; }
+
+    /* Demo hint */
+    .demo-hint { flex-wrap: wrap; font-size: 0.72rem; padding: 6px 10px; }
+
+    /* Prompt and buttons */
+    .prompt { font-size: 0.92rem; padding: 0 4px; }
+    .btn-record { padding: 20px; }
+    .btn-record__icon { width: 28px; height: 28px; }
+    .btn-record__text { font-size: 0.9rem; }
+    .btn-record-audio { font-size: 0.78rem; padding: 10px 16px; }
+
+    /* Text input */
+    .type-input-block { padding: 0; }
+    #type-direct { font-size: 0.85rem; padding: 12px; }
+
+    /* Feedback screen */
+    .feedback-header h2 { font-size: 1.15rem; }
+    .coaching-box { padding: 14px; }
+    .coaching-text { font-size: 0.95rem; line-height: 1.55; }
+    .transcript-box { padding: 10px 12px; }
+    .practice-plan { padding: 12px; }
+
+    /* Provider badge */
+    .provider-badge { font-size: 0.7rem; padding: 8px 14px; flex-wrap: wrap; }
+
+    /* Progress screen */
+    .streak-banner { padding: 20px 14px; flex-wrap: wrap; gap: 6px; }
+    .streak-count { font-size: 2.4rem; }
+    .streak-flame-icon { width: 24px; height: 24px; }
+    .progress-grid { gap: 8px; grid-template-columns: repeat(3, 1fr); }
+    .progress-stat { min-width: 80px; }
+    .progress-value { font-size: 1.4rem; }
+
+    /* Badges */
+    .badges-grid { gap: 8px; }
+    .badge-item { min-width: 80px; }
+
+    /* Heatmap */
+    .heatmap-grid { gap: 3px; }
+
+    /* Scan section */
+    .scan-result { padding: 12px; font-size: 0.82rem; }
+
+    /* Nav */
+    .nav { gap: 0; padding: 8px 6px; }
+    .nav-btn { font-size: 0.7rem; padding: 8px 6px; }
+
+    /* Listen button */
+    .btn-listen { font-size: 0.78rem; padding: 10px 16px; }
+    .btn-again { font-size: 0.82rem; padding: 10px 20px; }
+    .btn-export { font-size: 0.82rem; }
+
+    /* Onboarding */
+    .onboarding-card { padding: 24px 16px; margin: 10px; }
+    .onboarding-step h3 { font-size: 1rem; }
+    .onboarding-step p { font-size: 0.82rem; }
+
+    /* Context input */
+    .context-input { padding: 0; }
+
+    /* Type input area */
+    #type-practice { font-size: 0.85rem; }
+
+    /* Buttons general */
+    .btn-send { font-size: 0.8rem; padding: 10px 16px; }
+    .btn-scan { font-size: 0.82rem; padding: 10px 16px; }
 }
 
 /* ── Header ── */
