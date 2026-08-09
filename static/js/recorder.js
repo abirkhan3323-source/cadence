@@ -282,12 +282,26 @@ if (btnRecordAudio) {
 if (btnKaizenStart) btnKaizenStart.addEventListener("click", toggleKaizenTimer);
 if (btnKaizenReset) btnKaizenReset.addEventListener("click", resetKaizenTimer);
 
-// Demo button — one-click instant coaching for judges
+// Demo button — simulates live audio analysis with detected notes
 var btnDemo = document.getElementById("btn-demo");
 if (btnDemo) {
     btnDemo.addEventListener("click", function() {
         transcribedText = "I practiced my C major scale today. Going up is fine, but on the way down my fingers get all tangled up at the thumb crossover. I don't know what I'm doing wrong.";
-        document.getElementById("context").value = "";
+
+        // Simulate audio analysis — makes AI respond as if it heard the playing
+        var demoContext = (
+            "\n\n[🎹 LIVE AUDIO ANALYSIS — You just HEARD the student play:]" +
+            "\n- Notes detected: C4, D4, E4, F4, G4, A4, B4, C5" +
+            "\n- Total notes: 8" +
+            "\n- Tempo: ~120 BPM" +
+            "\n- Hesitations detected: 1 (at the descending crossover between E4 and D4)" +
+            "\n- Off-pitch notes (30+ cents): 0" +
+            "\n- Duration: 12s" +
+            "\n- Musical summary: Detected 8 notes: C4, D4, E4, F4, G4, A4, B4, C5. Clean ascending scale. One hesitation on descent at the thumb-under crossover." +
+            "\n\nIMPORTANT: Reference these specific notes in your coaching. The student played C4 through C5 clean on the way up but hesitated at the thumb crossover on the way down. Tell them exactly which notes to isolate."
+        );
+
+        document.getElementById("context").value = demoContext;
         document.getElementById("demo-hint").style.opacity = "0.4";
         sendToCoach();
     });
