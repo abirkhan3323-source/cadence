@@ -679,6 +679,8 @@ textarea::placeholder { color: var(--ivory-muted); opacity: 0.6; }
     background: rgba(100,160,240,0.08);
     color: #80b4f0;
     border: 1px solid rgba(100,160,240,0.15);
+    margin-top: 4px;
+    margin-bottom: 10px;
 }
 .btn-listen:hover { background: rgba(100,160,240,0.14); border-color: rgba(100,160,240,0.3); }
 .btn-listen.listening {
@@ -888,6 +890,8 @@ textarea::placeholder { color: var(--ivory-muted); opacity: 0.6; }
     font-size: 1.05rem;
     line-height: 1.65;
     color: var(--ivory);
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .coaching-text p { margin-bottom: 8px; }
@@ -907,16 +911,19 @@ textarea::placeholder { color: var(--ivory-muted); opacity: 0.6; }
     font-size: 1rem;
     font-weight: 600;
     color: var(--success);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 8px;
+    word-break: break-word;
 }
 
 .practice-plan #plan-content {
     color: var(--ivory-dim);
     font-size: 0.9rem;
     line-height: 1.5;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 /* ── Progress Screen ── */
