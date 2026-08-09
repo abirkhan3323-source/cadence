@@ -319,6 +319,38 @@ body::before {
 }
 
 /* ── Prompt ── */
+/* ── Demo hint bar ── */
+.demo-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    margin-bottom: 14px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    background: rgba(200, 168, 78, 0.04);
+    border: 1px solid rgba(200, 168, 78, 0.1);
+    border-radius: 20px;
+    transition: opacity 0.3s;
+}
+.btn-demo {
+    background: var(--gold);
+    color: #0a0a0c;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.2s;
+}
+.btn-demo:hover { background: var(--gold-bright); }
+
 .prompt {
     text-align: center;
     font-size: 1.05rem;

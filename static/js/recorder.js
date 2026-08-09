@@ -282,6 +282,17 @@ if (btnRecordAudio) {
 if (btnKaizenStart) btnKaizenStart.addEventListener("click", toggleKaizenTimer);
 if (btnKaizenReset) btnKaizenReset.addEventListener("click", resetKaizenTimer);
 
+// Demo button — one-click instant coaching for judges
+var btnDemo = document.getElementById("btn-demo");
+if (btnDemo) {
+    btnDemo.addEventListener("click", function() {
+        transcribedText = "I practiced my C major scale today. Going up is fine, but on the way down my fingers get all tangled up at the thumb crossover. I don't know what I'm doing wrong.";
+        document.getElementById("context").value = "";
+        document.getElementById("demo-hint").style.opacity = "0.4";
+        sendToCoach();
+    });
+}
+
 function startRecording() {
     transcribedText = "";
 
